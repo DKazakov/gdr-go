@@ -94,10 +94,19 @@ func main() {
 	go downloader(true)
 	go repeat()
 
-	switch ev := termbox.PollEvent(); ev.Type {
-	case termbox.EventKey:
-		close(done)
-		close(exit)
+loop:
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeySpace:
+				log.Println("space!")
+			default:
+				close(done)
+				close(exit)
+				break loop
+			}
+		}
 	}
 
 	wg.Wait()
@@ -215,44 +224,44 @@ func request(method, url, data, name string) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode == 200 {
 		setStatus(name, "ok")
-	} else {
-		// bad idea, паника портит терминал
-		log.Printf("%s: request %s failed, status %s, response: %s", name, url, resp.Status, body[:])
-		setStatus(name, "error")
-	}
-
-	if name == reqChangeName {
-		jsonInterface := new(jsonChange)
-		err = json.Unmarshal(body, jsonInterface)
-		if err != nil {
-			log.Panicln(name, err)
-		}
-		dataMap.dollar = jsonInterface.Rates["RUB"]
-	} else {
-		jsonInterface := new(jsonStock)
-		err = json.Unmarshal(body, jsonInterface)
-		if err != nil {
-			log.Panicln(name, err, string(body[:]))
-		}
-		switch name {
-		case reqPriceDayName:
-			for _, now := range jsonInterface.Data {
-				dataMap.daily = append(dataMap.daily, now[1])
+		if name == reqChangeName {
+			jsonInterface := new(jsonChange)
+			err = json.Unmarshal(body, jsonInterface)
+			if err != nil {
+				log.Printf("JSON error: %s - %s", name, err)
+			} else {
+				dataMap.dollar = jsonInterface.Rates["RUB"]
 			}
-		case reqPriceWithVolumeMonthlyName:
-			for i := 0; i < len(jsonInterface.Data); i++ {
-				date := jsonInterface.Data[i][0] * 1000000
-				dataMap.monthly = append(dataMap.monthly, jsonInterface.Data[i][1])
-				dataMap.dates = append(dataMap.dates, date)
-				dataMap.values = append(dataMap.values, jsonInterface.Data[i][2])
-				if i > 1 {
-					dataMap.gdr = append(dataMap.gdr, getGdr(dataMap.monthly, dataMap.values))
-					dataMap.gdrdates = append(dataMap.gdrdates, date)
+		} else {
+			jsonInterface := new(jsonStock)
+			err = json.Unmarshal(body, jsonInterface)
+			if err != nil {
+				log.Printf("JSON error: %s - %s", name, err)
+			} else {
+				switch name {
+				case reqPriceDayName:
+					for _, now := range jsonInterface.Data {
+						dataMap.daily = append(dataMap.daily, now[1])
+					}
+				case reqPriceWithVolumeMonthlyName:
+					for i := 0; i < len(jsonInterface.Data); i++ {
+						date := jsonInterface.Data[i][0] * 1000000
+						dataMap.monthly = append(dataMap.monthly, jsonInterface.Data[i][1])
+						dataMap.dates = append(dataMap.dates, date)
+						dataMap.values = append(dataMap.values, jsonInterface.Data[i][2])
+						if i > 1 {
+							dataMap.gdr = append(dataMap.gdr, getGdr(dataMap.monthly, dataMap.values))
+							dataMap.gdrdates = append(dataMap.gdrdates, date)
+						}
+					}
 				}
 			}
 		}
+		setStatus(name, "done")
+	} else {
+		log.Printf("%s: request %s failed, status %s, response: %s", name, url, resp.Status, body[:])
+		setStatus(name, "error")
 	}
-	setStatus(name, "done")
 
 	return
 }
@@ -323,40 +332,46 @@ func renderGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 		legendValue = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.maxvalue/1000000, dataMap.minvalue/1000000)
 		legendGdr   = fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", dataMap.maxgdr, dataMap.mingdr, dataMap.gdr[len(dataMap.gdr)-1])
 		legendNow   = fmt.Sprintf("current price %.2f", dataMap.lastprice)
+		priceSeries chart.ContinuousSeries
+		gdrSeries   chart.ContinuousSeries
+		valueSeries chart.ContinuousSeries
+		nowSeries   chart.ContinuousSeries
 	)
 	buffer = bytes.NewBuffer([]byte{})
 
-	priceSeries := chart.ContinuousSeries{
-		Name: legendPrice,
-		Style: chart.Style{
-			Show:        true,
-			StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
-			FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
-		},
-		XValues: dataMap.dates,
-		YValues: dataMap.monthly,
+	if len(dataMap.monthly) > 0 && len(dataMap.dates) > 0 {
+		priceSeries = chart.ContinuousSeries{
+			Name: legendPrice,
+			Style: chart.Style{
+				Show:        true,
+				StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
+				FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
+			},
+			XValues: dataMap.dates,
+			YValues: dataMap.monthly,
+		}
+		gdrSeries = chart.ContinuousSeries{
+			Name: legendGdr,
+			Style: chart.Style{
+				Show:        true,
+				StrokeColor: drawing.Color{R: 0, G: 0, B: 0, A: 255},
+				StrokeWidth: 1.5,
+			},
+			XValues: dataMap.gdrdates,
+			YValues: dataMap.approximatedgdr,
+		}
+		valueSeries = chart.ContinuousSeries{
+			Name: legendValue,
+			Style: chart.Style{
+				Show:        true,
+				StrokeColor: drawing.Color{R: 0, G: 255, B: 0, A: 255},
+				StrokeWidth: 1.5,
+			},
+			XValues: dataMap.dates,
+			YValues: dataMap.approximatedvalues,
+		}
 	}
-	gdrSeries := chart.ContinuousSeries{
-		Name: legendGdr,
-		Style: chart.Style{
-			Show:        true,
-			StrokeColor: drawing.Color{R: 0, G: 0, B: 0, A: 255},
-			StrokeWidth: 1.5,
-		},
-		XValues: dataMap.gdrdates,
-		YValues: dataMap.approximatedgdr,
-	}
-	valueSeries := chart.ContinuousSeries{
-		Name: legendValue,
-		Style: chart.Style{
-			Show:        true,
-			StrokeColor: drawing.Color{R: 0, G: 255, B: 0, A: 255},
-			StrokeWidth: 1.5,
-		},
-		XValues: dataMap.dates,
-		YValues: dataMap.approximatedvalues,
-	}
-	nowSeries := chart.ContinuousSeries{
+	nowSeries = chart.ContinuousSeries{
 		Name: legendNow,
 		Style: chart.Style{
 			Show:        true,

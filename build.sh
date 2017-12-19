@@ -21,7 +21,7 @@ set -o nounset                              # Treat unset variables as an error
 go build
 if [ $? == 0 ]
 then
-    mv gdr ~/bin/
+    mv gdr-go ~/bin/gdr
 else
     echo "build error!"
 fi
