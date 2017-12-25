@@ -466,18 +466,18 @@ func printForecast() (padding int) {
 		colorCol   = "\x1b[48;05;242m"
 		colorRed   = "\x1b[48;05;196m"
 		colorGreen = "\x1b[48;05;34m"
+		start      = 27.0
+		step       = 0.5
+		mul        = 0.98
 	)
 	var (
 		color     string
 		even      = true
-		step      = 0.5
-		mul       = 0.98
-		goodprice = (1.65*1000000)/(dataMap.dollar*1775) + optionsVesting
 		value     float64
 		rvalue    float64
 		col       string
 		collength int
-		start     = 26.0
+		goodprice = (1.65*1000000)/(dataMap.dollar*1775) + optionsVesting
 	)
 	for price := start; price < start+float64(sizeY-4)/2; price = price + step {
 		value = optionsValue * (price - optionsVesting)
