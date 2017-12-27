@@ -543,8 +543,7 @@ func ranges(i float64, divider string) string {
 	for ; i >= 1000.0; i = i / 1000.0 {
 		out = fmt.Sprintf("%s%03d", divider, int(i)%1000) + out
 	}
-
-	return fmt.Sprintf("%.0f%s", i, out)
+	return fmt.Sprintf("%d%s", int(i), out)
 }
 
 func getGdr(prices, values []float64) float64 {
