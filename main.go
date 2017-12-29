@@ -162,10 +162,13 @@ func downloader(first bool) {
 	go request(reqPriceWithVolumeMonthlyType, reqPriceWithVolumeMonthlyURL, reqPriceWithVolumeMonthlyBody, reqPriceWithVolumeMonthlyName)
 
 	waitRequest.Wait()
+
 	if first {
 		done <- "ok"
 	}
-	if dataMap.lastprice != dataMap.daily[len(dataMap.daily)-1] {
+	if len(dataMap.daily) == 0 {
+		fmt.Printf("\x1b[%d;%dH\x1b[05;196mОшибка!!!!: %s\x1b[0m", sizeY-3, 0, time.Now().Format("15:04:05"))
+	} else if dataMap.lastprice != dataMap.daily[len(dataMap.daily)-1] {
 		postprocessData()
 
 		termbox.Clear(coldef, coldef)
