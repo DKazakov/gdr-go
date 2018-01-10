@@ -100,7 +100,7 @@ loop:
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeySpace:
-				log.Println("space!")
+				downloader(false)
 			default:
 				close(done)
 				close(exit)
@@ -155,6 +155,16 @@ func spinner() {
 }
 
 func downloader(first bool) {
+	dataMap.dates = []float64{}
+	dataMap.monthly = []float64{}
+	dataMap.daily = []float64{}
+	dataMap.current = []float64{}
+	dataMap.gdr = []float64{}
+	dataMap.approximatedgdr = []float64{}
+	dataMap.gdrdates = []float64{}
+	dataMap.values = []float64{}
+	dataMap.approximatedvalues = []float64{}
+
 	waitRequest.Add(3)
 
 	go request(reqPriceDayType, reqPriceDayURL, reqPriceDayBody, reqPriceDayName)
@@ -190,16 +200,6 @@ func downloader(first bool) {
 	} else {
 		fmt.Printf("\x1b[%d;%dH\x1b[05;32mОбновлено: %s\x1b[0m", sizeY-3, 0, time.Now().Format("15:04:05"))
 	}
-
-	dataMap.dates = []float64{}
-	dataMap.monthly = []float64{}
-	dataMap.daily = []float64{}
-	dataMap.current = []float64{}
-	dataMap.gdr = []float64{}
-	dataMap.approximatedgdr = []float64{}
-	dataMap.gdrdates = []float64{}
-	dataMap.values = []float64{}
-	dataMap.approximatedvalues = []float64{}
 
 	return
 }
@@ -551,14 +551,15 @@ func ranges(i float64, divider string) string {
 
 func getGdr(prices, values []float64) float64 {
 	var (
-		index = len(prices) - 1
-		count float64
-		summ  float64
-		i     int
+		indexPrices = len(prices) - 1
+		indexValues = len(values) - 1
+		count       float64
+		summ        float64
+		i           int
 	)
 	for ; i < 3; i++ {
-		count = count + prices[index-i]*values[index-i]
-		summ = summ + values[index-i]
+		count = count + prices[indexPrices-i]*values[indexValues-i]
+		summ = summ + values[indexValues-i]
 	}
 
 	return optionsValue - (optionsValue * optionsVesting / (count / summ))
