@@ -36,6 +36,10 @@ const (
 	reqPriceWithVolumeYearlyURL   string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeYearlyBody  string            = `{"request":{"SampleTime":"1w","TimeFrame":"1y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
 	reqPriceWithVolumeYearlyName  string            = "pricesandvolumeyearly"
+	reqPriceWithVolumeAlltimeType string            = "POST"
+	reqPriceWithVolumeAlltimeURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
+	reqPriceWithVolumeAlltimeBody string            = `{"request":{"SampleTime":"1w","TimeFrame":"10y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
+	reqPriceWithVolumeAlltimeName string            = "pricesandvolumealltime"
 )
 
 type jsonStock struct {
@@ -49,13 +53,16 @@ type jsonChange struct {
 type graphData struct {
 	dates               []float64
 	ydates              []float64
+	atdates             []float64
 	times               []float64
 	monthly             []float64
 	yearly              []float64
 	daily               []float64
+	all                 []float64
 	current             []float64
 	ycurrent            []float64
 	dcurrent            []float64
+	atcurrent           []float64
 	gdr                 []float64
 	approximatedgdr     []float64
 	yapproximatedgdr    []float64
@@ -68,17 +75,21 @@ type graphData struct {
 	min                 float64
 	ymin                float64
 	dmin                float64
+	atmin               float64
 	max                 float64
 	ymax                float64
 	dmax                float64
+	atmax               float64
 	lastprice           float64
 	dayprice            float64
 	minprice            float64
 	yminprice           float64
 	dminprice           float64
+	atminprice          float64
 	maxprice            float64
 	ymaxprice           float64
 	dmaxprice           float64
+	atmaxprice          float64
 	minvalue            float64
 	yminvalue           float64
 	maxvalue            float64
@@ -126,6 +137,8 @@ loop:
 					graphType = 2
 				} else if graphType == 2 {
 					graphType = 3
+				} else if graphType == 3 {
+					graphType = 4
 				} else {
 					graphType = 1
 				}
@@ -187,12 +200,15 @@ func downloader(first bool) {
 	dataMap.dates = []float64{}
 	dataMap.times = []float64{}
 	dataMap.ydates = []float64{}
+	dataMap.atdates = []float64{}
 	dataMap.monthly = []float64{}
 	dataMap.yearly = []float64{}
 	dataMap.daily = []float64{}
+	dataMap.all = []float64{}
 	dataMap.current = []float64{}
 	dataMap.ycurrent = []float64{}
 	dataMap.dcurrent = []float64{}
+	dataMap.atcurrent = []float64{}
 	dataMap.gdr = []float64{}
 	dataMap.approximatedgdr = []float64{}
 	dataMap.gdrdates = []float64{}
@@ -201,12 +217,13 @@ func downloader(first bool) {
 	dataMap.approximatedvalues = []float64{}
 	dataMap.yapproximatedvalues = []float64{}
 
-	waitRequest.Add(4)
+	waitRequest.Add(5)
 
 	go request(reqPriceDayType, reqPriceDayURL, reqPriceDayBody, reqPriceDayName)
 	go request(reqChangeType, reqChangeURL, reqChangeBody, reqChangeName)
 	go request(reqPriceWithVolumeMonthlyType, reqPriceWithVolumeMonthlyURL, reqPriceWithVolumeMonthlyBody, reqPriceWithVolumeMonthlyName)
 	go request(reqPriceWithVolumeYearlyType, reqPriceWithVolumeYearlyURL, reqPriceWithVolumeYearlyBody, reqPriceWithVolumeYearlyName)
+	go request(reqPriceWithVolumeAlltimeType, reqPriceWithVolumeAlltimeURL, reqPriceWithVolumeAlltimeBody, reqPriceWithVolumeAlltimeName)
 
 	waitRequest.Wait()
 
@@ -297,6 +314,22 @@ func request(method, url, data, name string) {
 						dataMap.ydates = append(dataMap.ydates, date)
 						dataMap.yvalues = append(dataMap.yvalues, jsonInterface.Data[i][2])
 					}
+				case reqPriceWithVolumeAlltimeName:
+					for i := 0; i < len(jsonInterface.Data); i++ {
+						date := jsonInterface.Data[i][0] * 1000000
+
+						if i > 0 {
+							if jsonInterface.Data[i][1] < jsonInterface.Data[i-1][1]*2 {
+								dataMap.all = append(dataMap.all, jsonInterface.Data[i][1])
+							} else {
+								dataMap.all = append(dataMap.all, jsonInterface.Data[i-1][1])
+								log.Printf("Skip wrong price: %+v", jsonInterface.Data[i])
+							}
+						} else {
+							dataMap.all = append(dataMap.all, jsonInterface.Data[i][1])
+						}
+						dataMap.atdates = append(dataMap.atdates, date)
+					}
 				}
 			}
 		}
@@ -353,13 +386,18 @@ func postprocessData() {
 	for i := 0; i < len(dataMap.daily); i++ {
 		dataMap.dcurrent = append(dataMap.dcurrent, dataMap.dayprice)
 	}
+	for i := 0; i < len(dataMap.all); i++ {
+		dataMap.atcurrent = append(dataMap.atcurrent, dataMap.lastprice)
+	}
+	log.Println(len(dataMap.all))
 	var (
-		minprice, maxprice   = minmax(dataMap.monthly)
-		yminprice, ymaxprice = minmax(dataMap.yearly)
-		dminprice, dmaxprice = minmax(dataMap.daily)
-		minvalue, maxvalue   = minmax(dataMap.values)
-		yminvalue, ymaxvalue = minmax(dataMap.yvalues)
-		mingdr, maxgdr       = minmax(dataMap.gdr)
+		minprice, maxprice     = minmax(dataMap.monthly)
+		yminprice, ymaxprice   = minmax(dataMap.yearly)
+		dminprice, dmaxprice   = minmax(dataMap.daily)
+		atminprice, atmaxprice = minmax(dataMap.all)
+		minvalue, maxvalue     = minmax(dataMap.values)
+		yminvalue, ymaxvalue   = minmax(dataMap.yvalues)
+		mingdr, maxgdr         = minmax(dataMap.gdr)
 	)
 
 	valuesKoefficient := (maxprice - minprice) / (maxvalue - minvalue)
@@ -378,33 +416,51 @@ func postprocessData() {
 	dataMap.min, dataMap.max = minmax([]float64{maxprice + 0.5, minprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
 	dataMap.ymin, dataMap.ymax = minmax([]float64{ymaxprice + 0.5, yminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
 	dataMap.dmin, dataMap.dmax = minmax([]float64{dmaxprice + 0.5, dminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
+	dataMap.atmin, dataMap.atmax = minmax([]float64{atmaxprice + 0.5, atminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
 
 	dataMap.minprice, dataMap.maxprice, dataMap.minvalue, dataMap.maxvalue, dataMap.mingdr, dataMap.maxgdr = minprice, maxprice, minvalue, maxvalue, mingdr, maxgdr
 	dataMap.yminprice, dataMap.ymaxprice, dataMap.yminvalue, dataMap.ymaxvalue = yminprice, ymaxprice, yminvalue, ymaxvalue
 	dataMap.dminprice, dataMap.dmaxprice = dminprice, dmaxprice
+	dataMap.atminprice, dataMap.atmaxprice = atminprice, atmaxprice
 
 	return
 }
 func renderGraph() {
+	const (
+		status1 = "\u2776 \u2781 \u2782 \u2783 за последний месяц"
+		status2 = "\u2780 \u2777 \u2782 \u2783 за последний год"
+		status3 = "\u2780 \u2781 \u2778 \u2783 сегодня"
+		status4 = "\u2780 \u2781 \u2782 \u2779 за всё время"
+	)
 	var (
 		image       *bytes.Buffer
 		imageStatus string
 		imageWidth  int = (sizeX - paddingLeft) * 7
 		imageHeight int = (sizeY - 4) * 15
+		eraseLength int
 	)
+	for _, e := range []int{len(status1), len(status2), len(status3), len(status4)} {
+		if eraseLength < e {
+			eraseLength = e
+		}
+	}
 
 	if os.Getenv("TERM_PROGRAM") == "iTerm.app" {
 		if graphType == 2 {
 			image = renderYearGraph(imageWidth, imageHeight)
-			imageStatus = "\u2780 \u2777 \u2782"
+			imageStatus = status2
 		} else if graphType == 3 {
 			image = renderDayGraph(imageWidth, imageHeight)
-			imageStatus = "\u2780 \u2781 \u2778"
+			imageStatus = status3
+		} else if graphType == 4 {
+			image = renderAlltimeGraph(imageWidth, imageHeight)
+			imageStatus = status4
 		} else {
 			image = renderDefaultGraph(imageWidth, imageHeight)
-			imageStatus = "\u2776 \u2781 \u2782"
+			imageStatus = status1
 		}
 		fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, encodeBuffer(image))
+		fmt.Printf("\x1b[%d;%dH%s", sizeY-3, int(sizeX/2)-1, strings.Repeat(" ", eraseLength))
 		fmt.Printf("\x1b[%d;%dH%s", sizeY-3, int(sizeX/2)-1, imageStatus)
 	} else {
 		fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, "\tУвы, картинки не картинки в этом терминале")
