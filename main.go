@@ -6,9 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nsf/termbox-go"
-	"github.com/wcharczuk/go-chart"
-	drawing "github.com/wcharczuk/go-chart/drawing"
-	util "github.com/wcharczuk/go-chart/util"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -35,6 +32,10 @@ const (
 	reqPriceWithVolumeMonthlyURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeMonthlyBody string            = `{"request":{"SampleTime":"1d","TimeFrame":"1m","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
 	reqPriceWithVolumeMonthlyName string            = "pricesandvolume"
+	reqPriceWithVolumeYearlyType  string            = "POST"
+	reqPriceWithVolumeYearlyURL   string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
+	reqPriceWithVolumeYearlyBody  string            = `{"request":{"SampleTime":"1w","TimeFrame":"1y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
+	reqPriceWithVolumeYearlyName  string            = "pricesandvolumeyearly"
 )
 
 type jsonStock struct {
@@ -46,25 +47,44 @@ type jsonChange struct {
 	Rates map[string]float64 `json:"rates"`
 }
 type graphData struct {
-	dates              []float64
-	monthly            []float64
-	daily              []float64
-	current            []float64
-	gdr                []float64
-	approximatedgdr    []float64
-	gdrdates           []float64
-	values             []float64
-	approximatedvalues []float64
-	dollar             float64
-	min                float64
-	max                float64
-	lastprice          float64
-	minprice           float64
-	maxprice           float64
-	minvalue           float64
-	maxvalue           float64
-	mingdr             float64
-	maxgdr             float64
+	dates               []float64
+	ydates              []float64
+	times               []float64
+	monthly             []float64
+	yearly              []float64
+	daily               []float64
+	current             []float64
+	ycurrent            []float64
+	dcurrent            []float64
+	gdr                 []float64
+	approximatedgdr     []float64
+	yapproximatedgdr    []float64
+	gdrdates            []float64
+	values              []float64
+	yvalues             []float64
+	approximatedvalues  []float64
+	yapproximatedvalues []float64
+	dollar              float64
+	min                 float64
+	ymin                float64
+	dmin                float64
+	max                 float64
+	ymax                float64
+	dmax                float64
+	lastprice           float64
+	dayprice            float64
+	minprice            float64
+	yminprice           float64
+	dminprice           float64
+	maxprice            float64
+	ymaxprice           float64
+	dmaxprice           float64
+	minvalue            float64
+	yminvalue           float64
+	maxvalue            float64
+	ymaxvalue           float64
+	mingdr              float64
+	maxgdr              float64
 }
 
 var (
@@ -77,6 +97,8 @@ var (
 	dataMap       = new(graphData)
 	sizeX         int
 	sizeY         int
+	paddingLeft   int
+	graphType     int
 )
 
 func main() {
@@ -100,7 +122,14 @@ loop:
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeySpace:
-				downloader(false)
+				if graphType == 0 || graphType == 1 {
+					graphType = 2
+				} else if graphType == 2 {
+					graphType = 3
+				} else {
+					graphType = 1
+				}
+				renderGraph()
 			default:
 				close(done)
 				close(exit)
@@ -156,20 +185,28 @@ func spinner() {
 
 func downloader(first bool) {
 	dataMap.dates = []float64{}
+	dataMap.times = []float64{}
+	dataMap.ydates = []float64{}
 	dataMap.monthly = []float64{}
+	dataMap.yearly = []float64{}
 	dataMap.daily = []float64{}
 	dataMap.current = []float64{}
+	dataMap.ycurrent = []float64{}
+	dataMap.dcurrent = []float64{}
 	dataMap.gdr = []float64{}
 	dataMap.approximatedgdr = []float64{}
 	dataMap.gdrdates = []float64{}
 	dataMap.values = []float64{}
+	dataMap.yvalues = []float64{}
 	dataMap.approximatedvalues = []float64{}
+	dataMap.yapproximatedvalues = []float64{}
 
-	waitRequest.Add(3)
+	waitRequest.Add(4)
 
 	go request(reqPriceDayType, reqPriceDayURL, reqPriceDayBody, reqPriceDayName)
 	go request(reqChangeType, reqChangeURL, reqChangeBody, reqChangeName)
 	go request(reqPriceWithVolumeMonthlyType, reqPriceWithVolumeMonthlyURL, reqPriceWithVolumeMonthlyBody, reqPriceWithVolumeMonthlyName)
+	go request(reqPriceWithVolumeYearlyType, reqPriceWithVolumeYearlyURL, reqPriceWithVolumeYearlyBody, reqPriceWithVolumeYearlyName)
 
 	waitRequest.Wait()
 
@@ -183,17 +220,10 @@ func downloader(first bool) {
 
 		termbox.Clear(coldef, coldef)
 		fmt.Printf("\x1b[2J\x1b[%d;%dH", 0, 0)
-		paddingLeft := printForecast()
+		paddingLeft = printForecast()
 
-		graphWidth := (sizeX - paddingLeft) * 7
-		graphHeight := (sizeY - 4) * 15
+		renderGraph()
 
-		if os.Getenv("TERM_PROGRAM") == "iTerm.app" {
-			image := renderGraph(graphWidth, graphHeight)
-			fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, encodeBuffer(image))
-		} else {
-			fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, "\tУвы, картинки не картинки в этом терминале")
-		}
 		printInfo()
 		termbox.Flush()
 
@@ -245,6 +275,9 @@ func request(method, url, data, name string) {
 				case reqPriceDayName:
 					for _, now := range jsonInterface.Data {
 						dataMap.daily = append(dataMap.daily, now[1])
+
+						time := now[0] * 1000000
+						dataMap.times = append(dataMap.times, time)
 					}
 				case reqPriceWithVolumeMonthlyName:
 					for i := 0; i < len(jsonInterface.Data); i++ {
@@ -256,6 +289,13 @@ func request(method, url, data, name string) {
 							dataMap.gdr = append(dataMap.gdr, getGdr(dataMap.monthly, dataMap.values))
 							dataMap.gdrdates = append(dataMap.gdrdates, date)
 						}
+					}
+				case reqPriceWithVolumeYearlyName:
+					for i := 0; i < len(jsonInterface.Data); i++ {
+						date := jsonInterface.Data[i][0] * 1000000
+						dataMap.yearly = append(dataMap.yearly, jsonInterface.Data[i][1])
+						dataMap.ydates = append(dataMap.ydates, date)
+						dataMap.yvalues = append(dataMap.yvalues, jsonInterface.Data[i][2])
 					}
 				}
 			}
@@ -302,19 +342,33 @@ func printStatus() (str string) {
 
 func postprocessData() {
 	dataMap.lastprice = dataMap.daily[len(dataMap.daily)-1]
+	dataMap.dayprice = dataMap.monthly[len(dataMap.monthly)-1]
 
 	for i := 0; i < len(dataMap.monthly); i++ {
 		dataMap.current = append(dataMap.current, dataMap.lastprice)
 	}
+	for i := 0; i < len(dataMap.yearly); i++ {
+		dataMap.ycurrent = append(dataMap.ycurrent, dataMap.lastprice)
+	}
+	for i := 0; i < len(dataMap.daily); i++ {
+		dataMap.dcurrent = append(dataMap.dcurrent, dataMap.dayprice)
+	}
 	var (
-		minprice, maxprice = minmax(dataMap.monthly)
-		minvalue, maxvalue = minmax(dataMap.values)
-		mingdr, maxgdr     = minmax(dataMap.gdr)
+		minprice, maxprice   = minmax(dataMap.monthly)
+		yminprice, ymaxprice = minmax(dataMap.yearly)
+		dminprice, dmaxprice = minmax(dataMap.daily)
+		minvalue, maxvalue   = minmax(dataMap.values)
+		yminvalue, ymaxvalue = minmax(dataMap.yvalues)
+		mingdr, maxgdr       = minmax(dataMap.gdr)
 	)
 
 	valuesKoefficient := (maxprice - minprice) / (maxvalue - minvalue)
 	for _, e := range dataMap.values {
 		dataMap.approximatedvalues = append(dataMap.approximatedvalues, minprice+((e-minvalue)*valuesKoefficient))
+	}
+	yvaluesKoefficient := (ymaxprice - yminprice) / (ymaxvalue - yminvalue)
+	for _, e := range dataMap.yvalues {
+		dataMap.yapproximatedvalues = append(dataMap.yapproximatedvalues, yminprice+((e-yminvalue)*yvaluesKoefficient))
 	}
 
 	gdrKoefficient := (maxprice - minprice) / (maxgdr - mingdr)
@@ -322,124 +376,39 @@ func postprocessData() {
 		dataMap.approximatedgdr = append(dataMap.approximatedgdr, minprice+((e-mingdr)*gdrKoefficient))
 	}
 	dataMap.min, dataMap.max = minmax([]float64{maxprice + 0.5, minprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
+	dataMap.ymin, dataMap.ymax = minmax([]float64{ymaxprice + 0.5, yminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
+	dataMap.dmin, dataMap.dmax = minmax([]float64{dmaxprice + 0.5, dminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
+
 	dataMap.minprice, dataMap.maxprice, dataMap.minvalue, dataMap.maxvalue, dataMap.mingdr, dataMap.maxgdr = minprice, maxprice, minvalue, maxvalue, mingdr, maxgdr
+	dataMap.yminprice, dataMap.ymaxprice, dataMap.yminvalue, dataMap.ymaxvalue = yminprice, ymaxprice, yminvalue, ymaxvalue
+	dataMap.dminprice, dataMap.dmaxprice = dminprice, dmaxprice
 
 	return
 }
-func renderGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
-	const (
-		graphFontSize = 7.0
-	)
+func renderGraph() {
 	var (
-		legendPrice = fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.maxprice, dataMap.minprice, dataMap.monthly[len(dataMap.monthly)-1])
-		legendValue = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.maxvalue/1000000, dataMap.minvalue/1000000)
-		legendGdr   = fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", dataMap.maxgdr, dataMap.mingdr, dataMap.gdr[len(dataMap.gdr)-1])
-		legendNow   = fmt.Sprintf("current price %.2f", dataMap.lastprice)
-		priceSeries chart.ContinuousSeries
-		gdrSeries   chart.ContinuousSeries
-		valueSeries chart.ContinuousSeries
-		nowSeries   chart.ContinuousSeries
+		image       *bytes.Buffer
+		imageStatus string
+		imageWidth  int = (sizeX - paddingLeft) * 7
+		imageHeight int = (sizeY - 4) * 15
 	)
-	buffer = bytes.NewBuffer([]byte{})
 
-	if len(dataMap.monthly) > 0 && len(dataMap.dates) > 0 {
-		priceSeries = chart.ContinuousSeries{
-			Name: legendPrice,
-			Style: chart.Style{
-				Show:        true,
-				StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
-				FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
-			},
-			XValues: dataMap.dates,
-			YValues: dataMap.monthly,
+	if os.Getenv("TERM_PROGRAM") == "iTerm.app" {
+		if graphType == 2 {
+			image = renderYearGraph(imageWidth, imageHeight)
+			imageStatus = "\u2780 \u2777 \u2782"
+		} else if graphType == 3 {
+			image = renderDayGraph(imageWidth, imageHeight)
+			imageStatus = "\u2780 \u2781 \u2778"
+		} else {
+			image = renderDefaultGraph(imageWidth, imageHeight)
+			imageStatus = "\u2776 \u2781 \u2782"
 		}
-		gdrSeries = chart.ContinuousSeries{
-			Name: legendGdr,
-			Style: chart.Style{
-				Show:        true,
-				StrokeColor: drawing.Color{R: 0, G: 0, B: 0, A: 255},
-				StrokeWidth: 1.5,
-			},
-			XValues: dataMap.gdrdates,
-			YValues: dataMap.approximatedgdr,
-		}
-		valueSeries = chart.ContinuousSeries{
-			Name: legendValue,
-			Style: chart.Style{
-				Show:        true,
-				StrokeColor: drawing.Color{R: 0, G: 255, B: 0, A: 255},
-				StrokeWidth: 1.5,
-			},
-			XValues: dataMap.dates,
-			YValues: dataMap.approximatedvalues,
-		}
+		fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, encodeBuffer(image))
+		fmt.Printf("\x1b[%d;%dH%s", sizeY-3, int(sizeX/2)-1, imageStatus)
+	} else {
+		fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, "\tУвы, картинки не картинки в этом терминале")
 	}
-	nowSeries = chart.ContinuousSeries{
-		Name: legendNow,
-		Style: chart.Style{
-			Show:        true,
-			StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
-			StrokeWidth: 1.0,
-		},
-		XValues: dataMap.dates,
-		YValues: dataMap.current,
-	}
-
-	graph := chart.Chart{
-		Width:  imageWidth,
-		Height: imageHeight,
-		Background: chart.Style{
-			Padding: chart.Box{
-				Top:    20,
-				Left:   0,
-				Right:  0,
-				Bottom: 0,
-			},
-		},
-		XAxis: chart.XAxis{
-			Style: chart.Style{
-				Show:     true,
-				FontSize: graphFontSize,
-			},
-			TickPosition: chart.TickPositionBetweenTicks,
-			ValueFormatter: func(v interface{}) string {
-				typed := v.(float64)
-				typedDate := util.Time.FromFloat64(typed)
-				return fmt.Sprintf("%.2d.%.2d", typedDate.Day(), typedDate.Month())
-			},
-		},
-		YAxis: chart.YAxis{
-			Style: chart.Style{
-				Show:     true,
-				FontSize: graphFontSize,
-			},
-			Range: &chart.ContinuousRange{
-				Max: dataMap.max,
-				Min: dataMap.min,
-			},
-		},
-		YAxisSecondary: chart.YAxis{
-			Style: chart.Style{
-				Show:     true,
-				FontSize: graphFontSize,
-			},
-			Range: &chart.ContinuousRange{
-				Max: dataMap.max,
-				Min: dataMap.min,
-			},
-		},
-		Series: []chart.Series{
-			priceSeries,
-			gdrSeries,
-			valueSeries,
-			nowSeries,
-		},
-	}
-	graph.Elements = []chart.Renderable{
-		chart.LegendThin(&graph),
-	}
-
-	graph.Render(chart.PNG, buffer)
 
 	return
 }
@@ -471,7 +440,7 @@ func printForecast() (padding int) {
 		colorGreen = "\x1b[48;05;34m"
 		start      = 27.0
 		step       = 0.5
-		mul        = 0.98
+		mul        = 0.993
 	)
 	var (
 		color     string

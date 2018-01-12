@@ -18,10 +18,10 @@
 #===============================================================================
 
 set -o nounset                              # Treat unset variables as an error
-go build
+go build -o gdr *.go
 if [ $? == 0 ]
 then
-    mv gdr-go ~/bin/gdr
+    mv gdr ~/bin/gdr
 else
     echo "build error!"
 fi
