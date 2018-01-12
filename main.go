@@ -389,7 +389,6 @@ func postprocessData() {
 	for i := 0; i < len(dataMap.all); i++ {
 		dataMap.atcurrent = append(dataMap.atcurrent, dataMap.lastprice)
 	}
-	log.Println(len(dataMap.all))
 	var (
 		minprice, maxprice     = minmax(dataMap.monthly)
 		yminprice, ymaxprice   = minmax(dataMap.yearly)
