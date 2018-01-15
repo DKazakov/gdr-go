@@ -34,7 +34,7 @@ func renderDayGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 		YValues: dayData.prices,
 	}
 	nowSeries = chart.ContinuousSeries{
-		Name: fmt.Sprintf("last closing price %.2f", defaultData),
+		Name: fmt.Sprintf("last closing price %.2f", closingprice),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
