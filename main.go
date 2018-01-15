@@ -23,23 +23,23 @@ const (
 	reqPriceDayType               string            = "POST"
 	reqPriceDayURL                string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetPrices"
 	reqPriceDayBody               string            = `{"request":{"SampleTime":"1mm","TimeFrame":"1d","RequestedDataSetType":"ohlc","ChartPriceType":"price","Key":"MAIL.LID","OffSet":-60,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Language":"en"}}`
-	reqPriceDayName               string            = "now"
+	reqPriceDayName               string            = "Now trades"
 	reqChangeType                 string            = "GET"
 	reqChangeURL                  string            = "https://api.fixer.io/latest?base=USD&symbols=RUB"
 	reqChangeBody                 string            = ``
-	reqChangeName                 string            = "change"
+	reqChangeName                 string            = "USD exchange"
 	reqPriceWithVolumeMonthlyType string            = "POST"
 	reqPriceWithVolumeMonthlyURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeMonthlyBody string            = `{"request":{"SampleTime":"1d","TimeFrame":"1m","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeMonthlyName string            = "pricesandvolume"
+	reqPriceWithVolumeMonthlyName string            = "Monthly trades"
 	reqPriceWithVolumeYearlyType  string            = "POST"
 	reqPriceWithVolumeYearlyURL   string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeYearlyBody  string            = `{"request":{"SampleTime":"1w","TimeFrame":"1y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeYearlyName  string            = "pricesandvolumeyearly"
+	reqPriceWithVolumeYearlyName  string            = "Yearly trades"
 	reqPriceWithVolumeAlltimeType string            = "POST"
 	reqPriceWithVolumeAlltimeURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeAlltimeBody string            = `{"request":{"SampleTime":"1w","TimeFrame":"10y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeAlltimeName string            = "pricesandvolumealltime"
+	reqPriceWithVolumeAlltimeName string            = "All time trades"
 )
 
 type jsonStock struct {
@@ -142,6 +142,11 @@ loop:
 				} else {
 					graphType = 1
 				}
+				log.Printf("\nydates: %+v\nyearly: %+v\nyapproximatedvalues: %+v\n", dataMap.ydates, dataMap.yearly, dataMap.yapproximatedvalues)
+				log.Printf("\nycurrent: %+v", dataMap.ycurrent)
+				log.Printf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.ymaxprice, dataMap.yminprice, dataMap.yearly[len(dataMap.yearly)-1])
+				log.Printf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.ymaxvalue/1000000, dataMap.yminvalue/1000000)
+				log.Printf("current price %.2f", dataMap.lastprice)
 				renderGraph()
 			default:
 				close(done)
@@ -157,7 +162,8 @@ loop:
 func repeat() {
 	defer wg.Done()
 	const (
-		timeout = 5 * 60 * time.Second
+		//timeout = 5 * 60 * time.Second
+		timeout = 1 * 60 * time.Second
 	)
 
 	for {
@@ -197,26 +203,6 @@ func spinner() {
 }
 
 func downloader(first bool) {
-	dataMap.dates = []float64{}
-	dataMap.times = []float64{}
-	dataMap.ydates = []float64{}
-	dataMap.atdates = []float64{}
-	dataMap.monthly = []float64{}
-	dataMap.yearly = []float64{}
-	dataMap.daily = []float64{}
-	dataMap.all = []float64{}
-	dataMap.current = []float64{}
-	dataMap.ycurrent = []float64{}
-	dataMap.dcurrent = []float64{}
-	dataMap.atcurrent = []float64{}
-	dataMap.gdr = []float64{}
-	dataMap.approximatedgdr = []float64{}
-	dataMap.gdrdates = []float64{}
-	dataMap.values = []float64{}
-	dataMap.yvalues = []float64{}
-	dataMap.approximatedvalues = []float64{}
-	dataMap.yapproximatedvalues = []float64{}
-
 	waitRequest.Add(5)
 
 	go request(reqPriceDayType, reqPriceDayURL, reqPriceDayBody, reqPriceDayName)
@@ -290,6 +276,8 @@ func request(method, url, data, name string) {
 			} else {
 				switch name {
 				case reqPriceDayName:
+					dataMap.times = []float64{}
+					dataMap.daily = []float64{}
 					for _, now := range jsonInterface.Data {
 						dataMap.daily = append(dataMap.daily, now[1])
 
@@ -297,6 +285,11 @@ func request(method, url, data, name string) {
 						dataMap.times = append(dataMap.times, time)
 					}
 				case reqPriceWithVolumeMonthlyName:
+					dataMap.dates = []float64{}
+					dataMap.monthly = []float64{}
+					dataMap.values = []float64{}
+					dataMap.gdr = []float64{}
+					dataMap.gdrdates = []float64{}
 					for i := 0; i < len(jsonInterface.Data); i++ {
 						date := jsonInterface.Data[i][0] * 1000000
 						dataMap.monthly = append(dataMap.monthly, jsonInterface.Data[i][1])
@@ -308,6 +301,9 @@ func request(method, url, data, name string) {
 						}
 					}
 				case reqPriceWithVolumeYearlyName:
+					dataMap.ydates = []float64{}
+					dataMap.yearly = []float64{}
+					dataMap.yvalues = []float64{}
 					for i := 0; i < len(jsonInterface.Data); i++ {
 						date := jsonInterface.Data[i][0] * 1000000
 						dataMap.yearly = append(dataMap.yearly, jsonInterface.Data[i][1])
@@ -315,6 +311,8 @@ func request(method, url, data, name string) {
 						dataMap.yvalues = append(dataMap.yvalues, jsonInterface.Data[i][2])
 					}
 				case reqPriceWithVolumeAlltimeName:
+					dataMap.atdates = []float64{}
+					dataMap.all = []float64{}
 					for i := 0; i < len(jsonInterface.Data); i++ {
 						date := jsonInterface.Data[i][0] * 1000000
 
@@ -365,9 +363,9 @@ func printStatus() (str string) {
 
 	for _, name := range keys {
 		if requestStatus[name]["status"] == "error" {
-			fmt.Printf("%s \x1b[05;31m%s\x1b[0m |\n", requestStatus[name]["url"], requestStatus[name]["status"])
+			fmt.Printf("%s (%s) \x1b[05;31m%s\x1b[0m |\n", requestStatus[name]["url"], name, requestStatus[name]["status"])
 		} else {
-			fmt.Printf("%s \x1b[05;32m%s\x1b[0m\n", requestStatus[name]["url"], requestStatus[name]["status"])
+			fmt.Printf("%s (%s) \x1b[05;32m%s\x1b[0m\n", requestStatus[name]["url"], name, requestStatus[name]["status"])
 		}
 	}
 	return
@@ -377,15 +375,19 @@ func postprocessData() {
 	dataMap.lastprice = dataMap.daily[len(dataMap.daily)-1]
 	dataMap.dayprice = dataMap.monthly[len(dataMap.monthly)-1]
 
+	dataMap.current = []float64{}
 	for i := 0; i < len(dataMap.monthly); i++ {
 		dataMap.current = append(dataMap.current, dataMap.lastprice)
 	}
+	dataMap.ycurrent = []float64{}
 	for i := 0; i < len(dataMap.yearly); i++ {
 		dataMap.ycurrent = append(dataMap.ycurrent, dataMap.lastprice)
 	}
+	dataMap.dcurrent = []float64{}
 	for i := 0; i < len(dataMap.daily); i++ {
 		dataMap.dcurrent = append(dataMap.dcurrent, dataMap.dayprice)
 	}
+	dataMap.atcurrent = []float64{}
 	for i := 0; i < len(dataMap.all); i++ {
 		dataMap.atcurrent = append(dataMap.atcurrent, dataMap.lastprice)
 	}
@@ -400,18 +402,23 @@ func postprocessData() {
 	)
 
 	valuesKoefficient := (maxprice - minprice) / (maxvalue - minvalue)
+	dataMap.approximatedvalues = []float64{}
 	for _, e := range dataMap.values {
 		dataMap.approximatedvalues = append(dataMap.approximatedvalues, minprice+((e-minvalue)*valuesKoefficient))
 	}
+
 	yvaluesKoefficient := (ymaxprice - yminprice) / (ymaxvalue - yminvalue)
+	dataMap.yapproximatedvalues = []float64{}
 	for _, e := range dataMap.yvalues {
 		dataMap.yapproximatedvalues = append(dataMap.yapproximatedvalues, yminprice+((e-yminvalue)*yvaluesKoefficient))
 	}
 
 	gdrKoefficient := (maxprice - minprice) / (maxgdr - mingdr)
+	dataMap.approximatedgdr = []float64{}
 	for _, e := range dataMap.gdr {
 		dataMap.approximatedgdr = append(dataMap.approximatedgdr, minprice+((e-mingdr)*gdrKoefficient))
 	}
+
 	dataMap.min, dataMap.max = minmax([]float64{maxprice + 0.5, minprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
 	dataMap.ymin, dataMap.ymax = minmax([]float64{ymaxprice + 0.5, yminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
 	dataMap.dmin, dataMap.dmax = minmax([]float64{dmaxprice + 0.5, dminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
