@@ -279,7 +279,7 @@ func approximate(max, min float64, arr []float64) (ret []float64) {
 
 	C := (max - min) / (max1 - min1)
 	for _, e := range arr {
-		ret = append(ret, min+((e-min)*C))
+		ret = append(ret, min+((e-min1)*C))
 	}
 
 	return
