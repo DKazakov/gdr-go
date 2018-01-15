@@ -162,8 +162,7 @@ loop:
 func repeat() {
 	defer wg.Done()
 	const (
-		//timeout = 5 * 60 * time.Second
-		timeout = 1 * 60 * time.Second
+		timeout = 5 * 60 * time.Second
 	)
 
 	for {
