@@ -38,7 +38,7 @@ const (
 	reqPriceDayType               string            = "POST"
 	reqPriceDayURL                string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetPrices"
 	reqPriceDayBody               string            = `{"request":{"SampleTime":"1mm","TimeFrame":"1d","RequestedDataSetType":"ohlc","ChartPriceType":"price","Key":"MAIL.LID","OffSet":-60,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Language":"en"}}`
-	reqPriceDayName               string            = "Now trades"
+	reqPriceDayName               string            = "Today trades"
 	reqChangeType                 string            = "GET"
 	reqChangeURL                  string            = "https://api.fixer.io/latest?base=USD&symbols=RUB"
 	reqChangeBody                 string            = ``
@@ -46,15 +46,15 @@ const (
 	reqPriceWithVolumeMonthlyType string            = "POST"
 	reqPriceWithVolumeMonthlyURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeMonthlyBody string            = `{"request":{"SampleTime":"1d","TimeFrame":"1m","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeMonthlyName string            = "Monthly trades"
+	reqPriceWithVolumeMonthlyName string            = "Last month trades"
 	reqPriceWithVolumeYearlyType  string            = "POST"
 	reqPriceWithVolumeYearlyURL   string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	reqPriceWithVolumeYearlyBody  string            = `{"request":{"SampleTime":"1w","TimeFrame":"1y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeYearlyName  string            = "Yearly trades"
+	reqPriceWithVolumeYearlyName  string            = "Last year trades"
 	reqPriceWithVolumeAlltimeType string            = "POST"
 	reqPriceWithVolumeAlltimeURL  string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
-	reqPriceWithVolumeAlltimeBody string            = `{"request":{"SampleTime":"1w","TimeFrame":"10y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	reqPriceWithVolumeAlltimeName string            = "All time trades"
+	reqPriceWithVolumeAlltimeBody string            = `{"request":{"SampleTime":"1w","TimeFrame":"5y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
+	reqPriceWithVolumeAlltimeName string            = "Last 5 years trades"
 )
 
 var (
@@ -290,7 +290,7 @@ func renderGraph() {
 		status1 = "\u2776 \u2781 \u2782 \u2783 за последний месяц"
 		status2 = "\u2780 \u2777 \u2782 \u2783 за последний год"
 		status3 = "\u2780 \u2781 \u2778 \u2783 сегодня"
-		status4 = "\u2780 \u2781 \u2782 \u2779 за всё время"
+		status4 = "\u2780 \u2781 \u2782 \u2779 за пять лет"
 	)
 	var (
 		image       *bytes.Buffer
