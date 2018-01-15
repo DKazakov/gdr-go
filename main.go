@@ -92,16 +92,14 @@ loop:
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			switch ev.Key {
+			case termbox.KeyArrowLeft:
+				graphType = getNextGraphType(false)
+				renderGraph()
+			case termbox.KeyArrowRight:
+				graphType = getNextGraphType(true)
+				renderGraph()
 			case termbox.KeySpace:
-				if graphType == 0 || graphType == 1 {
-					graphType = 2
-				} else if graphType == 2 {
-					graphType = 3
-				} else if graphType == 3 {
-					graphType = 4
-				} else {
-					graphType = 1
-				}
+				graphType = getNextGraphType(true)
 				renderGraph()
 			default:
 				close(done)
@@ -410,7 +408,7 @@ func printInfo() {
 		smileValueS = "-"
 	}
 	fmt.Printf(
-		"\x1b[%d;0H\nСтоимость сейчас: %.2f %s  (%s%.2f) Последнее изменение %s\nGDR: %.2f (прогноз: %.2f => %s рублей)\nОбщая стоимость: %s доллара (%s рублей при курсе %.2f)",
+		"\x1b[%d;0H\nСтоимость сейчас: %.2f %s  (%s%.2f) Последнее обновление %s\nGDR: %.2f (прогноз: %.2f => %s рублей)\nОбщая стоимость: %s доллара (%s рублей при курсе %.2f)",
 		sizeY-3,
 		lastprice,
 		smile,
@@ -448,4 +446,28 @@ func getGdr(prices, values []float64) float64 {
 	}
 
 	return optionsValue - (optionsValue * optionsVesting / (count / summ))
+}
+
+func getNextGraphType(forward bool) (t int) {
+	const (
+		min = 1
+		max = 4
+	)
+	i := -1
+
+	if forward {
+		i = 1
+	}
+	if graphType < min {
+		graphType = min
+	}
+	t = graphType + i
+
+	if t < min {
+		t = max
+	} else if t > max {
+		t = min
+	}
+
+	return
 }
