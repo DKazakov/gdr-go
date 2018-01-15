@@ -29,10 +29,6 @@ type tradeData struct {
 	dates  []float64
 	values []float64
 }
-type gdrData struct {
-	gdr   []float64
-	dates []float64
-}
 
 const (
 	optionsValue                  float64           = 1775
@@ -399,7 +395,7 @@ func printForecast() (padding int) {
 
 func printInfo() {
 	var (
-		gdr            = defaultGdr.gdr[len(defaultGdr.gdr)-1]
+		gdr            = defaultGdr.prices[len(defaultGdr.prices)-1]
 		gdrForecast    = getGdr(append(defaultData.prices, lastprice), append(defaultData.values, defaultData.values[len(defaultData.values)-1]))
 		dprice         = gdr * lastprice
 		rprice         = dprice * dollar

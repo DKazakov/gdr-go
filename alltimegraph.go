@@ -121,4 +121,5 @@ func allRequestCallback(json *jsonStock) {
 	}
 
 	allData = data
+	return
 }

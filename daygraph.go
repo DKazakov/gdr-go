@@ -113,4 +113,5 @@ func dayRequestCallback(json *jsonStock) {
 	}
 
 	dayData = data
+	return
 }

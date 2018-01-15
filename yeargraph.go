@@ -123,4 +123,5 @@ func yearRequestCallback(json *jsonStock) {
 	}
 
 	yearData = data
+	return
 }

@@ -10,14 +10,14 @@ import (
 
 var (
 	defaultData *tradeData
-	defaultGdr  *gdrData
+	defaultGdr  *tradeData
 )
 
 func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	var (
 		minprice, maxprice = minmax(defaultData.prices)
 		min, max           = minmax([]float64{maxprice + 0.5, minprice - 0.5, lastprice + 0.5, lastprice - 0.5})
-		mingdr, maxgdr     = minmax(defaultGdr.gdr)
+		mingdr, maxgdr     = minmax(defaultGdr.prices)
 		minvalue, maxvalue = minmax(defaultData.values)
 
 		priceSeries chart.ContinuousSeries
@@ -39,14 +39,14 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 		YValues: defaultData.prices,
 	}
 	gdrSeries = chart.ContinuousSeries{
-		Name: fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", maxgdr, mingdr, defaultGdr.gdr[len(defaultGdr.gdr)-1]),
+		Name: fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", maxgdr, mingdr, defaultGdr.prices[len(defaultGdr.prices)-1]),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 0, A: 255},
 			StrokeWidth: 1.5,
 		},
 		XValues: defaultGdr.dates,
-		YValues: approximate(maxprice, minprice, defaultGdr.gdr),
+		YValues: approximate(maxprice, minprice, defaultGdr.prices),
 	}
 	valueSeries = chart.ContinuousSeries{
 		Name: fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", maxvalue/1000000, minvalue/1000000),
@@ -130,18 +130,19 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 
 func defaultRequestCallback(json *jsonStock) {
 	data := new(tradeData)
-	gdr := new(gdrData)
+	gdr := new(tradeData)
 	for i := 0; i < len(json.Data); i++ {
 		date := json.Data[i][0] * 1000000
 		data.prices = append(data.prices, json.Data[i][1])
 		data.dates = append(data.dates, date)
 		data.values = append(data.values, json.Data[i][2])
 		if i > 1 {
-			gdr.gdr = append(gdr.gdr, getGdr(data.prices, data.values))
+			gdr.prices = append(gdr.prices, getGdr(data.prices, data.values))
 			gdr.dates = append(gdr.dates, date)
 		}
 	}
 
 	defaultData = data
 	defaultGdr = gdr
+	return
 }
