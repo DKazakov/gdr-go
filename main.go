@@ -16,6 +16,24 @@ import (
 	"time"
 )
 
+type jsonStock struct {
+	Data [][]float64 `json:"d"`
+}
+type jsonChange struct {
+	Base  string             `json:"base"`
+	Date  string             `json:"date"`
+	Rates map[string]float64 `json:"rates"`
+}
+type tradeData struct {
+	prices []float64
+	dates  []float64
+	values []float64
+}
+type gdrData struct {
+	gdr   []float64
+	dates []float64
+}
+
 const (
 	optionsValue                  float64           = 1775
 	optionsVesting                float64           = 19.6
@@ -42,62 +60,6 @@ const (
 	reqPriceWithVolumeAlltimeName string            = "All time trades"
 )
 
-type jsonStock struct {
-	Data [][]float64 `json:"d"`
-}
-type jsonChange struct {
-	Base  string             `json:"base"`
-	Date  string             `json:"date"`
-	Rates map[string]float64 `json:"rates"`
-}
-type graphData struct {
-	dates               []float64
-	ydates              []float64
-	atdates             []float64
-	times               []float64
-	monthly             []float64
-	yearly              []float64
-	daily               []float64
-	all                 []float64
-	current             []float64
-	ycurrent            []float64
-	dcurrent            []float64
-	atcurrent           []float64
-	gdr                 []float64
-	approximatedgdr     []float64
-	yapproximatedgdr    []float64
-	gdrdates            []float64
-	values              []float64
-	yvalues             []float64
-	approximatedvalues  []float64
-	yapproximatedvalues []float64
-	dollar              float64
-	min                 float64
-	ymin                float64
-	dmin                float64
-	atmin               float64
-	max                 float64
-	ymax                float64
-	dmax                float64
-	atmax               float64
-	lastprice           float64
-	dayprice            float64
-	minprice            float64
-	yminprice           float64
-	dminprice           float64
-	atminprice          float64
-	maxprice            float64
-	ymaxprice           float64
-	dmaxprice           float64
-	atmaxprice          float64
-	minvalue            float64
-	yminvalue           float64
-	maxvalue            float64
-	ymaxvalue           float64
-	mingdr              float64
-	maxgdr              float64
-}
-
 var (
 	done          = make(chan string)
 	exit          = make(chan string)
@@ -105,11 +67,12 @@ var (
 	waitRequest   sync.WaitGroup
 	mu            sync.Mutex
 	requestStatus = map[string]map[string]string{}
-	dataMap       = new(graphData)
 	sizeX         int
 	sizeY         int
 	paddingLeft   int
 	graphType     int
+	dollar        float64
+	lastprice     float64
 )
 
 func main() {
@@ -210,23 +173,15 @@ func downloader(first bool) {
 	if first {
 		done <- "ok"
 	}
-	if len(dataMap.daily) == 0 {
-		fmt.Printf("\x1b[%d;%dH\x1b[05;196mОшибка!!!!: %s\x1b[0m", sizeY-3, 0, time.Now().Format("15:04:05"))
-	} else if dataMap.lastprice != dataMap.daily[len(dataMap.daily)-1] {
-		postprocessData()
 
-		termbox.Clear(coldef, coldef)
-		fmt.Printf("\x1b[2J\x1b[%d;%dH", 0, 0)
-		paddingLeft = printForecast()
+	termbox.Clear(coldef, coldef)
+	fmt.Printf("\x1b[2J\x1b[%d;%dH", 0, 0)
+	paddingLeft = printForecast()
 
-		renderGraph()
+	renderGraph()
 
-		printInfo()
-		termbox.Flush()
-
-	} else {
-		fmt.Printf("\x1b[%d;%dH\x1b[05;32mОбновлено: %s\x1b[0m", sizeY-3, 0, time.Now().Format("15:04:05"))
-	}
+	printInfo()
+	termbox.Flush()
 
 	return
 }
@@ -260,7 +215,7 @@ func request(method, url, data, name string) {
 			if err != nil {
 				log.Printf("JSON error: %s - %s", name, err)
 			} else {
-				dataMap.dollar = jsonInterface.Rates["RUB"]
+				dollar = jsonInterface.Rates["RUB"]
 			}
 		} else {
 			jsonInterface := new(jsonStock)
@@ -272,58 +227,13 @@ func request(method, url, data, name string) {
 			} else {
 				switch name {
 				case reqPriceDayName:
-					dataMap.times = []float64{}
-					dataMap.daily = []float64{}
-					for _, now := range jsonInterface.Data {
-						dataMap.daily = append(dataMap.daily, now[1])
-
-						time := now[0] * 1000000
-						dataMap.times = append(dataMap.times, time)
-					}
+					dayRequestCallback(jsonInterface)
 				case reqPriceWithVolumeMonthlyName:
-					dataMap.dates = []float64{}
-					dataMap.monthly = []float64{}
-					dataMap.values = []float64{}
-					dataMap.gdr = []float64{}
-					dataMap.gdrdates = []float64{}
-					for i := 0; i < len(jsonInterface.Data); i++ {
-						date := jsonInterface.Data[i][0] * 1000000
-						dataMap.monthly = append(dataMap.monthly, jsonInterface.Data[i][1])
-						dataMap.dates = append(dataMap.dates, date)
-						dataMap.values = append(dataMap.values, jsonInterface.Data[i][2])
-						if i > 1 {
-							dataMap.gdr = append(dataMap.gdr, getGdr(dataMap.monthly, dataMap.values))
-							dataMap.gdrdates = append(dataMap.gdrdates, date)
-						}
-					}
+					defaultRequestCallback(jsonInterface)
 				case reqPriceWithVolumeYearlyName:
-					dataMap.ydates = []float64{}
-					dataMap.yearly = []float64{}
-					dataMap.yvalues = []float64{}
-					for i := 0; i < len(jsonInterface.Data); i++ {
-						date := jsonInterface.Data[i][0] * 1000000
-						dataMap.yearly = append(dataMap.yearly, jsonInterface.Data[i][1])
-						dataMap.ydates = append(dataMap.ydates, date)
-						dataMap.yvalues = append(dataMap.yvalues, jsonInterface.Data[i][2])
-					}
+					yearRequestCallback(jsonInterface)
 				case reqPriceWithVolumeAlltimeName:
-					dataMap.atdates = []float64{}
-					dataMap.all = []float64{}
-					for i := 0; i < len(jsonInterface.Data); i++ {
-						date := jsonInterface.Data[i][0] * 1000000
-
-						if i > 0 {
-							if jsonInterface.Data[i][1] < jsonInterface.Data[i-1][1]*2 {
-								dataMap.all = append(dataMap.all, jsonInterface.Data[i][1])
-							} else {
-								dataMap.all = append(dataMap.all, jsonInterface.Data[i-1][1])
-								log.Printf("Skip wrong price: %+v", jsonInterface.Data[i])
-							}
-						} else {
-							dataMap.all = append(dataMap.all, jsonInterface.Data[i][1])
-						}
-						dataMap.atdates = append(dataMap.atdates, date)
-					}
+					allRequestCallback(jsonInterface)
 				}
 			}
 		}
@@ -367,66 +277,17 @@ func printStatus() (str string) {
 	return
 }
 
-func postprocessData() {
-	dataMap.lastprice = dataMap.daily[len(dataMap.daily)-1]
-	dataMap.dayprice = dataMap.monthly[len(dataMap.monthly)-1]
+func approximate(max, min float64, arr []float64) (ret []float64) {
+	min1, max1 := minmax(arr)
 
-	dataMap.current = []float64{}
-	for i := 0; i < len(dataMap.monthly); i++ {
-		dataMap.current = append(dataMap.current, dataMap.lastprice)
+	C := (max - min) / (max1 - min1)
+	for _, e := range arr {
+		ret = append(ret, min+((e-min)*C))
 	}
-	dataMap.ycurrent = []float64{}
-	for i := 0; i < len(dataMap.yearly); i++ {
-		dataMap.ycurrent = append(dataMap.ycurrent, dataMap.lastprice)
-	}
-	dataMap.dcurrent = []float64{}
-	for i := 0; i < len(dataMap.daily); i++ {
-		dataMap.dcurrent = append(dataMap.dcurrent, dataMap.dayprice)
-	}
-	dataMap.atcurrent = []float64{}
-	for i := 0; i < len(dataMap.all); i++ {
-		dataMap.atcurrent = append(dataMap.atcurrent, dataMap.lastprice)
-	}
-	var (
-		minprice, maxprice     = minmax(dataMap.monthly)
-		yminprice, ymaxprice   = minmax(dataMap.yearly)
-		dminprice, dmaxprice   = minmax(dataMap.daily)
-		atminprice, atmaxprice = minmax(dataMap.all)
-		minvalue, maxvalue     = minmax(dataMap.values)
-		yminvalue, ymaxvalue   = minmax(dataMap.yvalues)
-		mingdr, maxgdr         = minmax(dataMap.gdr)
-	)
-
-	valuesKoefficient := (maxprice - minprice) / (maxvalue - minvalue)
-	dataMap.approximatedvalues = []float64{}
-	for _, e := range dataMap.values {
-		dataMap.approximatedvalues = append(dataMap.approximatedvalues, minprice+((e-minvalue)*valuesKoefficient))
-	}
-
-	yvaluesKoefficient := (ymaxprice - yminprice) / (ymaxvalue - yminvalue)
-	dataMap.yapproximatedvalues = []float64{}
-	for _, e := range dataMap.yvalues {
-		dataMap.yapproximatedvalues = append(dataMap.yapproximatedvalues, yminprice+((e-yminvalue)*yvaluesKoefficient))
-	}
-
-	gdrKoefficient := (maxprice - minprice) / (maxgdr - mingdr)
-	dataMap.approximatedgdr = []float64{}
-	for _, e := range dataMap.gdr {
-		dataMap.approximatedgdr = append(dataMap.approximatedgdr, minprice+((e-mingdr)*gdrKoefficient))
-	}
-
-	dataMap.min, dataMap.max = minmax([]float64{maxprice + 0.5, minprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
-	dataMap.ymin, dataMap.ymax = minmax([]float64{ymaxprice + 0.5, yminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
-	dataMap.dmin, dataMap.dmax = minmax([]float64{dmaxprice + 0.5, dminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
-	dataMap.atmin, dataMap.atmax = minmax([]float64{atmaxprice + 0.5, atminprice - 0.5, dataMap.current[0] + 0.5, dataMap.current[0] - 0.5})
-
-	dataMap.minprice, dataMap.maxprice, dataMap.minvalue, dataMap.maxvalue, dataMap.mingdr, dataMap.maxgdr = minprice, maxprice, minvalue, maxvalue, mingdr, maxgdr
-	dataMap.yminprice, dataMap.ymaxprice, dataMap.yminvalue, dataMap.ymaxvalue = yminprice, ymaxprice, yminvalue, ymaxvalue
-	dataMap.dminprice, dataMap.dmaxprice = dminprice, dmaxprice
-	dataMap.atminprice, dataMap.atmaxprice = atminprice, atmaxprice
 
 	return
 }
+
 func renderGraph() {
 	const (
 		status1 = "\u2776 \u2781 \u2782 \u2783 за последний месяц"
@@ -507,12 +368,12 @@ func printForecast() (padding int) {
 		rvalue    float64
 		col       string
 		collength int
-		goodprice = (1.65*1000000)/(dataMap.dollar*1775) + optionsVesting
+		goodprice = (1.65*1000000)/(dollar*1775) + optionsVesting
 	)
 	for price := start; price < start+float64(sizeY-4)/2; price = price + step {
 		value = optionsValue * (price - optionsVesting)
-		rvalue = value * dataMap.dollar / 1000
-		if price >= dataMap.lastprice*mul && price < dataMap.lastprice*mul+step {
+		rvalue = value * dollar / 1000
+		if price >= lastprice*mul && price < lastprice*mul+step {
 			color = colorGreen
 		} else if price >= goodprice && price < goodprice+step {
 			color = colorRed
@@ -537,16 +398,16 @@ func printForecast() (padding int) {
 
 func printInfo() {
 	var (
-		gdr            = dataMap.gdr[len(dataMap.gdr)-1]
-		gdrForecast    = getGdr(append(dataMap.monthly, dataMap.lastprice), append(dataMap.values, dataMap.values[len(dataMap.values)-1]))
-		dprice         = gdr * dataMap.lastprice
-		rprice         = dprice * dataMap.dollar
-		rpriceForecast = gdrForecast * dataMap.lastprice * dataMap.dollar
+		gdr            = defaultGdr.gdr[len(defaultGdr.gdr)-1]
+		gdrForecast    = getGdr(append(defaultData.prices, lastprice), append(defaultData.values, defaultData.values[len(defaultData.values)-1]))
+		dprice         = gdr * lastprice
+		rprice         = dprice * dollar
+		rpriceForecast = gdrForecast * lastprice * dollar
 		smile          = string(128512)
-		smileValue     = dataMap.lastprice - dataMap.monthly[len(dataMap.monthly)-1]
+		smileValue     = lastprice - defaultData.prices[len(defaultData.prices)-1]
 		smileValueS    = "+"
 	)
-	if dataMap.lastprice < dataMap.monthly[len(dataMap.monthly)-1] {
+	if smileValue < 0 {
 		smile = string(128545)
 		smileValue = 0 - smileValue
 		smileValueS = "-"
@@ -554,7 +415,7 @@ func printInfo() {
 	fmt.Printf(
 		"\x1b[%d;0H\nСтоимость сейчас: %.2f %s  (%s%.2f) Последнее изменение %s\nGDR: %.2f (прогноз: %.2f => %s рублей)\nОбщая стоимость: %s доллара (%s рублей при курсе %.2f)",
 		sizeY-3,
-		dataMap.lastprice,
+		lastprice,
 		smile,
 		smileValueS,
 		smileValue,
@@ -564,7 +425,7 @@ func printInfo() {
 		ranges(rpriceForecast, " "),
 		ranges(dprice, " "),
 		ranges(rprice, " "),
-		dataMap.dollar,
+		dollar,
 	)
 }
 

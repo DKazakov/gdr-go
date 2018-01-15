@@ -6,6 +6,11 @@ import (
 	"github.com/wcharczuk/go-chart"
 	drawing "github.com/wcharczuk/go-chart/drawing"
 	util "github.com/wcharczuk/go-chart/util"
+	"log"
+)
+
+var (
+	allData *tradeData
 )
 
 func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
@@ -13,33 +18,33 @@ func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 		graphFontSize = 7.0
 	)
 	var (
-		legendPrice = fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.atmaxprice, dataMap.atminprice, dataMap.all[len(dataMap.all)-1])
-		legendNow   = fmt.Sprintf("current price %.2f", dataMap.lastprice)
-		priceSeries chart.ContinuousSeries
-		nowSeries   chart.ContinuousSeries
+		minprice, maxprice = minmax(allData.prices)
+		min, max           = minmax([]float64{maxprice + 0.5, minprice - 0.5, lastprice + 0.5, lastprice - 0.5})
+		priceSeries        chart.ContinuousSeries
+		nowSeries          chart.ContinuousSeries
 	)
 
 	buffer = bytes.NewBuffer([]byte{})
 
 	priceSeries = chart.ContinuousSeries{
-		Name: legendPrice,
+		Name: fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", maxprice, minprice, allData.prices[len(allData.prices)-1]),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
 			FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
 		},
-		XValues: dataMap.atdates,
-		YValues: dataMap.all,
+		XValues: allData.dates,
+		YValues: allData.prices,
 	}
 	nowSeries = chart.ContinuousSeries{
-		Name: legendNow,
+		Name: fmt.Sprintf("current price %.2f", lastprice),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
 			StrokeWidth: 1.0,
 		},
-		XValues: dataMap.atdates,
-		YValues: dataMap.atcurrent,
+		XValues: []float64{allData.dates[0], allData.dates[len(allData.dates)-1]},
+		YValues: []float64{lastprice, lastprice},
 	}
 
 	graph := chart.Chart{
@@ -71,8 +76,8 @@ func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.atmax,
-				Min: dataMap.atmin,
+				Max: max,
+				Min: min,
 			},
 		},
 		YAxisSecondary: chart.YAxis{
@@ -81,8 +86,8 @@ func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.atmax,
-				Min: dataMap.atmin,
+				Max: max,
+				Min: min,
 			},
 		},
 		Series: []chart.Series{
@@ -97,4 +102,26 @@ func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	graph.Render(chart.PNG, buffer)
 
 	return
+}
+
+func allRequestCallback(json *jsonStock) {
+	data := new(tradeData)
+
+	for i := 0; i < len(json.Data); i++ {
+		date := json.Data[i][0] * 1000000
+
+		if i > 0 {
+			if json.Data[i][1] < json.Data[i-1][1]*2 {
+				data.prices = append(data.prices, json.Data[i][1])
+			} else {
+				data.prices = append(data.prices, json.Data[i-1][1])
+				log.Printf("Skip wrong price: %+v", json.Data[i])
+			}
+		} else {
+			data.prices = append(data.prices, json.Data[i][1])
+		}
+		data.dates = append(data.dates, date)
+	}
+
+	allData = data
 }

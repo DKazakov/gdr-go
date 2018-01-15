@@ -8,15 +8,21 @@ import (
 	util "github.com/wcharczuk/go-chart/util"
 )
 
+var (
+	defaultData *tradeData
+	defaultGdr  *gdrData
+)
+
 func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	const (
 		graphFontSize = 7.0
 	)
 	var (
-		legendPrice = fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.maxprice, dataMap.minprice, dataMap.monthly[len(dataMap.monthly)-1])
-		legendValue = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.maxvalue/1000000, dataMap.minvalue/1000000)
-		legendGdr   = fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", dataMap.maxgdr, dataMap.mingdr, dataMap.gdr[len(dataMap.gdr)-1])
-		legendNow   = fmt.Sprintf("current price %.2f", dataMap.lastprice)
+		minprice, maxprice = minmax(defaultData.prices)
+		min, max           = minmax([]float64{maxprice + 0.5, minprice - 0.5, lastprice + 0.5, lastprice - 0.5})
+		mingdr, maxgdr     = minmax(defaultGdr.gdr)
+		minvalue, maxvalue = minmax(defaultData.values)
+
 		priceSeries chart.ContinuousSeries
 		gdrSeries   chart.ContinuousSeries
 		valueSeries chart.ContinuousSeries
@@ -26,44 +32,44 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	buffer = bytes.NewBuffer([]byte{})
 
 	priceSeries = chart.ContinuousSeries{
-		Name: legendPrice,
+		Name: fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", maxprice, minprice, defaultData.prices[len(defaultData.prices)-1]),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
 			FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
 		},
-		XValues: dataMap.dates,
-		YValues: dataMap.monthly,
+		XValues: defaultData.dates,
+		YValues: defaultData.prices,
 	}
 	gdrSeries = chart.ContinuousSeries{
-		Name: legendGdr,
+		Name: fmt.Sprintf("scaled GDR's, max: %.2f, min: %.2f, now: %.2f", maxgdr, mingdr, defaultGdr.gdr[len(defaultGdr.gdr)-1]),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 0, A: 255},
 			StrokeWidth: 1.5,
 		},
-		XValues: dataMap.gdrdates,
-		YValues: dataMap.approximatedgdr,
+		XValues: defaultGdr.dates,
+		YValues: approximate(maxprice, minprice, defaultGdr.gdr),
 	}
 	valueSeries = chart.ContinuousSeries{
-		Name: legendValue,
+		Name: fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", maxvalue/1000000, minvalue/1000000),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 255, B: 0, A: 255},
 			StrokeWidth: 1.5,
 		},
-		XValues: dataMap.dates,
-		YValues: dataMap.approximatedvalues,
+		XValues: defaultData.dates,
+		YValues: approximate(maxprice, minprice, defaultData.values),
 	}
 	nowSeries = chart.ContinuousSeries{
-		Name: legendNow,
+		Name: fmt.Sprintf("current price %.2f", lastprice),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
 			StrokeWidth: 1.0,
 		},
-		XValues: dataMap.dates,
-		YValues: dataMap.current,
+		XValues: []float64{defaultData.dates[0], defaultData.dates[len(defaultData.dates)-1]},
+		YValues: []float64{lastprice, lastprice},
 	}
 
 	graph := chart.Chart{
@@ -95,8 +101,8 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.max,
-				Min: dataMap.min,
+				Max: max,
+				Min: min,
 			},
 		},
 		YAxisSecondary: chart.YAxis{
@@ -105,8 +111,8 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.max,
-				Min: dataMap.min,
+				Max: max,
+				Min: min,
 			},
 		},
 		Series: []chart.Series{
@@ -123,4 +129,22 @@ func renderDefaultGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	graph.Render(chart.PNG, buffer)
 
 	return
+}
+
+func defaultRequestCallback(json *jsonStock) {
+	data := new(tradeData)
+	gdr := new(gdrData)
+	for i := 0; i < len(json.Data); i++ {
+		date := json.Data[i][0] * 1000000
+		data.prices = append(data.prices, json.Data[i][1])
+		data.dates = append(data.dates, date)
+		data.values = append(data.values, json.Data[i][2])
+		if i > 1 {
+			gdr.gdr = append(gdr.gdr, getGdr(data.prices, data.values))
+			gdr.dates = append(gdr.dates, date)
+		}
+	}
+
+	defaultData = data
+	defaultGdr = gdr
 }

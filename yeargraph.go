@@ -8,50 +8,54 @@ import (
 	util "github.com/wcharczuk/go-chart/util"
 )
 
+var (
+	yearData *tradeData
+)
+
 func renderYearGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	const (
 		graphFontSize = 7.0
 	)
 	var (
-		legendPrice = fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.ymaxprice, dataMap.yminprice, dataMap.yearly[len(dataMap.yearly)-1])
-		legendValue = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.ymaxvalue/1000000, dataMap.yminvalue/1000000)
-		legendNow   = fmt.Sprintf("current price %.2f", dataMap.lastprice)
-		priceSeries chart.ContinuousSeries
-		valueSeries chart.ContinuousSeries
-		nowSeries   chart.ContinuousSeries
+		minprice, maxprice = minmax(yearData.prices)
+		min, max           = minmax([]float64{maxprice + 0.5, minprice - 0.5, lastprice + 0.5, lastprice - 0.5})
+		minvalue, maxvalue = minmax(yearData.values)
+		priceSeries        chart.ContinuousSeries
+		valueSeries        chart.ContinuousSeries
+		nowSeries          chart.ContinuousSeries
 	)
 
 	buffer = bytes.NewBuffer([]byte{})
 
 	priceSeries = chart.ContinuousSeries{
-		Name: legendPrice,
+		Name: fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", maxprice, minprice, yearData.prices[len(yearData.prices)-1]),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 255, G: 0, B: 0, A: 255},
 			FillColor:   drawing.Color{R: 255, G: 0, B: 0, A: 255},
 		},
-		XValues: dataMap.ydates,
-		YValues: dataMap.yearly,
+		XValues: yearData.dates,
+		YValues: yearData.prices,
 	}
 	valueSeries = chart.ContinuousSeries{
-		Name: legendValue,
+		Name: fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", maxvalue/1000000, minvalue/1000000),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 255, B: 0, A: 255},
 			StrokeWidth: 1.5,
 		},
-		XValues: dataMap.ydates,
-		YValues: dataMap.yapproximatedvalues,
+		XValues: yearData.dates,
+		YValues: approximate(maxprice, minprice, yearData.values),
 	}
 	nowSeries = chart.ContinuousSeries{
-		Name: legendNow,
+		Name: fmt.Sprintf("current price %.2f", lastprice),
 		Style: chart.Style{
 			Show:        true,
 			StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
 			StrokeWidth: 1.0,
 		},
-		XValues: dataMap.ydates,
-		YValues: dataMap.ycurrent,
+		XValues: []float64{yearData.dates[0], yearData.dates[len(yearData.dates)-1]},
+		YValues: []float64{lastprice, lastprice},
 	}
 
 	graph := chart.Chart{
@@ -83,8 +87,8 @@ func renderYearGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.ymax,
-				Min: dataMap.ymin,
+				Max: max,
+				Min: min,
 			},
 		},
 		YAxisSecondary: chart.YAxis{
@@ -93,8 +97,8 @@ func renderYearGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 				FontSize: graphFontSize,
 			},
 			Range: &chart.ContinuousRange{
-				Max: dataMap.ymax,
-				Min: dataMap.ymin,
+				Max: max,
+				Min: min,
 			},
 		},
 		Series: []chart.Series{
@@ -110,4 +114,16 @@ func renderYearGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
 	graph.Render(chart.PNG, buffer)
 
 	return
+}
+
+func yearRequestCallback(json *jsonStock) {
+	data := new(tradeData)
+	for i := 0; i < len(json.Data); i++ {
+		date := json.Data[i][0] * 1000000
+		data.prices = append(data.prices, json.Data[i][1])
+		data.dates = append(data.dates, date)
+		data.values = append(data.values, json.Data[i][2])
+	}
+
+	yearData = data
 }
