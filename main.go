@@ -142,11 +142,6 @@ loop:
 				} else {
 					graphType = 1
 				}
-				log.Printf("\nydates: %+v\nyearly: %+v\nyapproximatedvalues: %+v\n", dataMap.ydates, dataMap.yearly, dataMap.yapproximatedvalues)
-				log.Printf("\nycurrent: %+v", dataMap.ycurrent)
-				log.Printf("price, max: %.2f, min: %.2f, last: %.2f", dataMap.ymaxprice, dataMap.yminprice, dataMap.yearly[len(dataMap.yearly)-1])
-				log.Printf("scaled value, max: %.1fkk, min: %.1fkk", dataMap.ymaxvalue/1000000, dataMap.yminvalue/1000000)
-				log.Printf("current price %.2f", dataMap.lastprice)
 				renderGraph()
 			default:
 				close(done)
