@@ -267,6 +267,8 @@ func request(method, url, data, name string) {
 			err = json.Unmarshal(body, jsonInterface)
 			if err != nil {
 				log.Printf("JSON error: %s - %s", name, err)
+			} else if len(jsonInterface.Data) == 0 {
+				log.Printf("NO DATA FOR %s: %+v", name, jsonInterface)
 			} else {
 				switch name {
 				case reqPriceDayName:
