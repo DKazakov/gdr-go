@@ -14,9 +14,6 @@ var (
 )
 
 func renderAlltimeGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
-	const (
-		graphFontSize = 7.0
-	)
 	var (
 		minprice, maxprice = minmax(allData.prices)
 		min, max           = minmax([]float64{maxprice + 0.5, minprice - 0.5, lastprice + 0.5, lastprice - 0.5})

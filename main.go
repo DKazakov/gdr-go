@@ -38,6 +38,7 @@ const (
 	optionsValue                  float64           = 1775
 	optionsVesting                float64           = 19.6
 	coldef                        termbox.Attribute = termbox.ColorDefault
+	graphFontSize                                   = 7.0
 	reqPriceDayType               string            = "POST"
 	reqPriceDayURL                string            = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetPrices"
 	reqPriceDayBody               string            = `{"request":{"SampleTime":"1mm","TimeFrame":"1d","RequestedDataSetType":"ohlc","ChartPriceType":"price","Key":"MAIL.LID","OffSet":-60,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Language":"en"}}`

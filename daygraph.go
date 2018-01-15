@@ -13,9 +13,6 @@ var (
 )
 
 func renderDayGraph(imageWidth, imageHeight int) (buffer *bytes.Buffer) {
-	const (
-		graphFontSize = 7.0
-	)
 	var (
 		minprice, maxprice = minmax(dayData.prices)
 		closingprice       = defaultData.prices[len(defaultData.prices)-1]
