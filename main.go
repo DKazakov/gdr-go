@@ -304,18 +304,20 @@ func renderGraph() {
 	}
 
 	if os.Getenv("TERM_PROGRAM") == "iTerm.app" {
-		if graphType == 2 {
+		if graphType == 2 && len(yearData.prices) > 0 {
 			image = renderYearGraph(imageWidth, imageHeight)
 			imageStatus = status2
-		} else if graphType == 3 {
+		} else if graphType == 3 && len(dayData.prices) > 0 {
 			image = renderDayGraph(imageWidth, imageHeight)
 			imageStatus = status3
-		} else if graphType == 4 {
+		} else if graphType == 4 && len(allData.prices) > 0 {
 			image = renderAlltimeGraph(imageWidth, imageHeight)
 			imageStatus = status4
-		} else {
+		} else if len(defaultData.prices) > 0 {
 			image = renderDefaultGraph(imageWidth, imageHeight)
 			imageStatus = status1
+		} else {
+			log.Println("no image, no data, no graphics, no panic")
 		}
 		fmt.Printf("\x1b[0;%dH%s", paddingLeft+1, encodeBuffer(image))
 		fmt.Printf("\x1b[%d;%dH%s", sizeY-3, int(sizeX/2)-1, strings.Repeat(" ", eraseLength))
@@ -352,11 +354,11 @@ func printForecast() (padding int) {
 		colorCol   = "\x1b[48;05;242m"
 		colorRed   = "\x1b[48;05;196m"
 		colorGreen = "\x1b[48;05;34m"
-		start      = 27.0
 		step       = 0.5
 		mul        = 0.993
 	)
 	var (
+		start     = float64(int(lastprice - 3))
 		color     string
 		even      = true
 		value     float64
