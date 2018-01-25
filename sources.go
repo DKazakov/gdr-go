@@ -10,25 +10,25 @@ import (
 	"strings"
 )
 
-type jsonStock struct {
+type JsonStock struct {
 	Data  [][]float64        `json:"d"`
 	Base  string             `json:"base"`
 	Date  string             `json:"date"`
 	Rates map[string]float64 `json:"rates"`
 }
 
-type source struct {
+type Source struct {
 	url      string
 	method   string
 	postdata string
 	status   string
 	index    int
-	process  func(*jsonStock) []graphData
+	process  func(*JsonStock) []GraphData
 }
 
-func InitSource(options ...string) (self *source) {
+func InitSource(options ...string) (self *Source) {
 	const defaulturl = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
-	self = new(source)
+	self = new(Source)
 	optlen := len(options)
 
 	if optlen == 0 {
@@ -53,7 +53,7 @@ func InitSource(options ...string) (self *source) {
 	return self
 }
 
-func (self *source) load() (data []graphData, err error) {
+func (self *Source) load() (data []GraphData, err error) {
 	self.setStatus("load")
 	data, err = self.get()
 	if err != nil {
@@ -65,7 +65,7 @@ func (self *source) load() (data []graphData, err error) {
 	return data, err
 }
 
-func (self *source) get() (data []graphData, err error) {
+func (self *Source) get() (data []GraphData, err error) {
 	var (
 		resp *http.Response
 	)
@@ -80,7 +80,7 @@ func (self *source) get() (data []graphData, err error) {
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			jsonInterface := new(jsonStock)
+			jsonInterface := new(JsonStock)
 			err = json.Unmarshal(body, jsonInterface)
 			if err != nil {
 				log.Printf("JSON error: %s - %s", self.url, err)
@@ -97,7 +97,7 @@ func (self *source) get() (data []graphData, err error) {
 
 	return
 }
-func (self *source) setStatus(name string) {
+func (self *Source) setStatus(name string) {
 	if name == "error" {
 		self.status = fmt.Sprintf("\x1b[05;31m%s\x1b[0m", name)
 	} else {
@@ -117,14 +117,14 @@ func (self *source) setStatus(name string) {
 	return
 }
 
-func wrapper(data ...graphData) (ret []graphData) {
+func wrapper(data ...GraphData) (ret []GraphData) {
 	return data
 }
 
-func daysCallback(jsonInterface *jsonStock) []graphData {
+func daysCallback(jsonInterface *JsonStock) []GraphData {
 	var (
-		month     = new(graphData)
-		year      = new(graphData)
+		month     = new(GraphData)
+		year      = new(GraphData)
 		lastMonth = len(jsonInterface.Data) - 31
 	)
 
@@ -140,9 +140,9 @@ func daysCallback(jsonInterface *jsonStock) []graphData {
 
 	return wrapper(*month, *year)
 }
-func weeksCallback(jsonInterface *jsonStock) []graphData {
+func weeksCallback(jsonInterface *JsonStock) []GraphData {
 	var (
-		fiveyears = new(graphData)
+		fiveyears = new(GraphData)
 	)
 
 	for _, e := range jsonInterface.Data {
@@ -151,9 +151,9 @@ func weeksCallback(jsonInterface *jsonStock) []graphData {
 
 	return wrapper(*fiveyears)
 }
-func hoursCallback(jsonInterface *jsonStock) []graphData {
+func hoursCallback(jsonInterface *JsonStock) []GraphData {
 	var (
-		today = new(graphData)
+		today = new(GraphData)
 	)
 
 	for _, e := range jsonInterface.Data {
@@ -162,14 +162,14 @@ func hoursCallback(jsonInterface *jsonStock) []graphData {
 
 	return wrapper(*today)
 }
-func exchangeCallback(jsonInterface *jsonStock) []graphData {
-	dollar := new(graphData)
+func exchangeCallback(jsonInterface *JsonStock) []GraphData {
+	dollar := new(GraphData)
 	dollar.setValues(0, jsonInterface.Rates["RUB"])
 
 	return wrapper(*dollar)
 }
 
-func getSources() map[string]*source {
+func getSources() map[string]*Source {
 	// daily	nil				- nil			post-default(postdata)-default(url)
 	// weekly	string(DATA)	- nil			post-postdata-default(url)
 	// hourly	string(DATA)	- string(URL)	post-postdata-url
@@ -186,7 +186,7 @@ func getSources() map[string]*source {
 	exchange := InitSource("GET", "https://api.fixer.io/latest?base=USD&symbols=RUB")
 	exchange.process = exchangeCallback
 
-	source := map[string]*source{
+	source := map[string]*Source{
 		"days":     days,
 		"weeks":    weeks,
 		"hours":    hours,

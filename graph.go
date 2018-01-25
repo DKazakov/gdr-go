@@ -9,18 +9,18 @@ import (
 	"strings"
 )
 
-type graph struct {
-	pages [4]graphData
+type Graph struct {
+	pages [4]GraphData
 	page  int
 }
 
-func (self *graph) Init(data *data) *graph {
+func (self *Graph) Init(data *Data) *Graph {
 	self.pages = data.graph
 
 	return self
 }
 
-func (self graph) getNextPage() int {
+func (self Graph) getNextPage() int {
 	page := self.page + 1
 	maxpage := len(self.pages) - 1
 	if page > maxpage {
@@ -29,7 +29,7 @@ func (self graph) getNextPage() int {
 
 	return page
 }
-func (self graph) getPrevPage() int {
+func (self Graph) getPrevPage() int {
 	page := self.page - 1
 	maxpage := len(self.pages) - 1
 	if page < 0 {
@@ -39,7 +39,7 @@ func (self graph) getPrevPage() int {
 	return page
 }
 
-func (self *graph) setPage(page int) {
+func (self *Graph) setPage(page int) {
 	maxpage := len(self.pages) - 1
 
 	if page < 0 {
@@ -53,7 +53,7 @@ func (self *graph) setPage(page int) {
 	return
 }
 
-func (self graph) print(width, height, left, bottom int) {
+func (self Graph) print(width, height, left, bottom int) {
 	imageWidth := (width - left) * 7
 	imageHeight := (height - bottom) * 15
 
@@ -67,7 +67,7 @@ func (self graph) print(width, height, left, bottom int) {
 	return
 }
 
-func (self graph) paginate() string {
+func (self Graph) paginate() string {
 	status := []string{
 		"\u2776 \u2781 \u2782 \u2783 сегодня",
 		"\u2780 \u2777 \u2782 \u2783 за последний месяц",
@@ -78,7 +78,7 @@ func (self graph) paginate() string {
 	return status
 }
 
-func (self graph) render(imageWidth, imageHeight int) *bytes.Buffer {
+func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 	buffer := bytes.NewBuffer([]byte{})
 	source := self.pages[self.page]
 	series := []chart.Series{}

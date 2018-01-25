@@ -55,18 +55,7 @@ func loadSpinner(x, y int) *time.Ticker {
 	return ticker
 }
 
-func update() *time.Ticker {
-	ticker := time.NewTicker(updateTick)
-
-	go func() {
-		for _ = range ticker.C {
-			log.Println("update")
-		}
-	}()
-
-	return ticker
-}
-func load(name string, item *source, data *data) {
+func load(name string, item *Source, data *Data) {
 	defer wg.Done()
 
 	page, err := item.load()
@@ -78,10 +67,22 @@ func load(name string, item *source, data *data) {
 
 	return
 }
+func get(name string, item *Source, data *Data) {
+	defer wg.Done()
+
+	page, err := item.get()
+	if err != nil {
+		log.Println(name, "loading error", err)
+	} else {
+		data.set(name, page)
+	}
+
+	return
+}
 
 func main() {
 	sources := getSources()
-	data := new(data).Init()
+	data := new(Data).Init()
 
 	f, _ := os.OpenFile("/var/log/self/gdr.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	defer f.Close()
@@ -102,8 +103,8 @@ func main() {
 	time.Sleep(loadTick)
 	data.finalize()
 
-	graph := new(graph).Init(data)
-	text := new(textinfo).Init(data)
+	graph := new(Graph).Init(data)
+	text := new(Textinfo).Init(data)
 
 	loadTicker.Stop()
 
@@ -111,7 +112,27 @@ func main() {
 	left, bottom := text.print(sizeX, sizeY)
 	graph.print(sizeX, sizeY, left, bottom)
 
-	updateTicker := update()
+	updateTicker := time.NewTicker(updateTick)
+
+	go func() {
+		for _ = range updateTicker.C {
+			data = new(Data).Init()
+			for name, item := range sources {
+				wg.Add(1)
+				go get(name, item, data)
+			}
+			wg.Wait()
+			data.finalize()
+
+			mu.Lock()
+			graph.Init(data)
+			text.Init(data)
+			fmt.Println("\x1b[2J")
+			left, bottom = text.print(sizeX, sizeY)
+			graph.print(sizeX, sizeY, left, bottom)
+			mu.Unlock()
+		}
+	}()
 
 loop:
 	for {

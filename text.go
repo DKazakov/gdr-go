@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-type textinfo struct {
+type Textinfo struct {
 	gdr, gdrForecast     float64
 	lastprice, lastclose float64
 	dollar               float64
 	up                   bool
 }
 
-func (self *textinfo) Init(data *data) *textinfo {
+func (self *Textinfo) Init(data *Data) *Textinfo {
 	self.gdr = data.gdr
 	self.gdrForecast = data.gdrForecast
 	self.lastprice = data.lastprice
@@ -23,7 +23,7 @@ func (self *textinfo) Init(data *data) *textinfo {
 	return self
 }
 
-func (self textinfo) forecast(height int) (padding int) {
+func (self Textinfo) forecast(height int) (padding int) {
 	const (
 		colorDef   = "\x1b[0m"
 		colorCol   = "\x1b[48;05;242m"
@@ -66,7 +66,7 @@ func (self textinfo) forecast(height int) (padding int) {
 	}
 	return
 }
-func (self textinfo) info(height int) int {
+func (self Textinfo) info(height int) int {
 	const (
 		smilegood  = string(128512)
 		smilebad   = string(128545)
@@ -99,7 +99,7 @@ func (self textinfo) info(height int) int {
 	)
 	return infoHeight
 }
-func (self textinfo) _ranges(i float64, divider string) string {
+func (self Textinfo) _ranges(i float64, divider string) string {
 	var out = ""
 	for ; i >= 1000.0; i = i / 1000.0 {
 		out = fmt.Sprintf("%s%03d", divider, int(i)%1000) + out
@@ -107,7 +107,7 @@ func (self textinfo) _ranges(i float64, divider string) string {
 	return fmt.Sprintf("%d%s", int(i), out)
 }
 
-func (self textinfo) print(width, height int) (paddingLeft, paddingBottom int) {
+func (self Textinfo) print(width, height int) (paddingLeft, paddingBottom int) {
 	fmt.Printf("\x1b[0;0H")
 	paddingLeft = self.forecast(height)
 	paddingBottom = self.info(height)

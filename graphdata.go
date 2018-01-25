@@ -5,22 +5,22 @@ import (
 	util "github.com/wcharczuk/go-chart/util"
 )
 
-type graphDataLabels struct {
+type GraphDataLabels struct {
 	x, xv, xgdr, waterline string
 }
-type extremum struct {
+type Extremum struct {
 	x, xv, xgdr, chart float64
 }
-type graphData struct {
+type GraphData struct {
 	name                       string
 	x, y, _xv, xv, _xgdr, xgdr []float64
 	waterline                  float64
-	labels                     *graphDataLabels
-	maximum, minimum           *extremum
+	labels                     *GraphDataLabels
+	maximum, minimum           *Extremum
 	valueFormatter             func(interface{}) string
 }
 
-func (self *graphData) setValues(y float64, x ...float64) {
+func (self *GraphData) setValues(y float64, x ...float64) {
 	var prev float64
 	next := x[0]
 	lenx := len(self.x)
@@ -39,10 +39,10 @@ func (self *graphData) setValues(y float64, x ...float64) {
 		self._xv = append(self._xv, x[1])
 	}
 }
-func (self *graphData) setExtremum() {
+func (self *GraphData) setExtremum() {
 	var (
-		min = new(extremum)
-		max = new(extremum)
+		min = new(Extremum)
+		max = new(Extremum)
 	)
 
 	min.x, max.x = minmax(self.x)
@@ -58,14 +58,14 @@ func (self *graphData) setExtremum() {
 
 	return
 }
-func (self *graphData) setGdr(gdr float64) {
+func (self *GraphData) setGdr(gdr float64) {
 	if gdr > 0 {
 		self._xgdr = append(self._xgdr, gdr)
 	}
 
 	return
 }
-func (self graphData) getGdr(next ...float64) (gdr float64) {
+func (self GraphData) getGdr(next ...float64) (gdr float64) {
 	var (
 		count float64
 		summ  float64
@@ -88,10 +88,10 @@ func (self graphData) getGdr(next ...float64) (gdr float64) {
 	return gdr
 }
 
-func (self *graphData) finalize(waterline float64, formatType string) {
+func (self *GraphData) finalize(waterline float64, formatType string) {
 	self.waterline = waterline
 	self.setExtremum()
-	labels := new(graphDataLabels)
+	labels := new(GraphDataLabels)
 
 	labels.x = fmt.Sprintf("price, max: %.2f, min: %.2f", self.maximum.x, self.minimum.x)
 
@@ -148,20 +148,20 @@ func minmax(array []float64) (min float64, max float64) {
 	return
 }
 
-type data struct {
-	graph                [4]graphData
+type Data struct {
+	graph                [4]GraphData
 	gdr, gdrForecast     float64
 	lastprice, lastclose float64
 	dollar               float64
 }
 
-func (self *data) Init() *data {
-	self = new(data)
+func (self *Data) Init() *Data {
+	self = new(Data)
 
 	return self
 }
 
-func (self *data) set(name string, data []graphData) {
+func (self *Data) set(name string, data []GraphData) {
 	switch name {
 	case "days":
 		data[0].name = "\u2780 \u2777 \u2782 \u2783 за последний месяц"
@@ -181,7 +181,7 @@ func (self *data) set(name string, data []graphData) {
 	}
 }
 
-func (self *data) finalize() int {
+func (self *Data) finalize() int {
 	var (
 		avg float64
 		i   int
