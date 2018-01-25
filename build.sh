@@ -18,10 +18,16 @@
 #===============================================================================
 
 set -o nounset                              # Treat unset variables as an error
-go build -o gdr *.go
-if [ $? == 0 ]
+TYPE=$[0]
+if [ "$TYPE" == "ok" ]
 then
-    mv gdr ~/bin/gdr
+    go build -o gdr main.go sources.go graph.go graphdata.go text.go
+    if [ $? == 0 ]
+    then
+        mv gdr ~/bin/gdr
+    else
+        echo "build error!"
+    fi
 else
-    echo "build error!"
+    go run main.go sources.go graph.go graphdata.go text.go
 fi
