@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	util "github.com/wcharczuk/go-chart/util"
+	"log"
 )
 
 type GraphDataLabels struct {
@@ -72,12 +73,14 @@ func (self GraphData) getGdr(next ...float64) (gdr float64) {
 		index = len(self._xv)
 		i     = index - 3
 	)
+	log.Println(index, i, len(next))
 	if i > 0 {
 		for ; i < index; i++ {
 			count = count + self.x[i]*self._xv[i]
 			summ = summ + self._xv[i]
 		}
 		if len(next) > 0 {
+			log.Println(next[0], next[1], count, summ)
 			count = count + next[0]*next[1]
 			summ = summ + next[1]
 
@@ -100,7 +103,7 @@ func (self *GraphData) finalize(waterline float64, formatType string) {
 		for _, e := range self._xv {
 			self.xv = append(self.xv, self.minimum.x+((e-self.minimum.xv)*C))
 		}
-		labels.xv = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", self.maximum.xv, self.minimum.xv)
+		labels.xv = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", self.maximum.xv/1000000, self.minimum.xv/1000000)
 	}
 	if len(self._xgdr) > 0 {
 		C := (self.maximum.x - self.minimum.x) / (self.maximum.xgdr - self.minimum.xgdr)
@@ -198,10 +201,10 @@ func (self *Data) finalize() int {
 	self.gdr = self.graph[1]._xgdr[len(self.graph[1]._xgdr)-1]
 
 	for ; i < len(self.graph[1].xv); i++ {
-		avg = avg + self.graph[1].xv[i]
+		avg = avg + self.graph[1]._xv[i]
 	}
 	avg = avg / float64(i)
-	self.gdrForecast = self.graph[0].getGdr(self.lastclose, avg)
+	self.gdrForecast = self.graph[1].getGdr(self.lastprice, avg)
 
 	return len(self.graph)
 }
