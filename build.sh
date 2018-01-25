@@ -1,4 +1,4 @@
-#!/bin/bash - 
+#!/usr/bin/env bash - 
 #===============================================================================
 #
 #          FILE: build.sh
@@ -18,16 +18,18 @@
 #===============================================================================
 
 set -o nounset                              # Treat unset variables as an error
-TYPE=$[0]
-if [ "$TYPE" == "ok" ]
-then
-    go build -o gdr main.go sources.go graph.go graphdata.go text.go
-    if [ $? == 0 ]
+for i in $#
+do
+    if [[ "$i" == "1" && "${!i}" == "ok" ]]
     then
-        mv gdr ~/bin/gdr
+        go build -o gdr main.go sources.go graph.go graphdata.go text.go
+        if [ $? == 0 ]
+        then
+            mv gdr ~/bin/gdr
+        else
+            echo "build error!"
+        fi
     else
-        echo "build error!"
+        go run main.go sources.go graph.go graphdata.go text.go
     fi
-else
-    go run main.go sources.go graph.go graphdata.go text.go
-fi
+done
