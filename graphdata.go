@@ -115,17 +115,23 @@ func (self *GraphData) finalize(waterline float64, formatType string) {
 
 	labels.waterline = fmt.Sprintf("current price %.2f", waterline)
 
+	self.valueFormatter = daysValueFormatter
 	if formatType == "hours" {
 		self.valueFormatter = hoursValueFormatter
 		labels.waterline = fmt.Sprintf("last closing price %.2f", waterline)
-	} else {
-		self.valueFormatter = daysValueFormatter
+	} else if formatType == "months" {
+		self.valueFormatter = monthsValueFormatter
 	}
 	self.labels = labels
 
 	return
 }
 
+func monthsValueFormatter(v interface{}) string {
+	typed := v.(float64)
+	typedDate := util.Time.FromFloat64(typed)
+	return fmt.Sprintf("%.2d.%.2d", typedDate.Month(), typedDate.Year())
+}
 func daysValueFormatter(v interface{}) string {
 	typed := v.(float64)
 	typedDate := util.Time.FromFloat64(typed)
@@ -194,9 +200,9 @@ func (self *Data) finalize() int {
 	self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
 
 	self.graph[0].finalize(self.lastclose, "hours")
-	for i := 1; i < len(self.graph); i++ {
-		self.graph[i].finalize(self.lastprice, "days")
-	}
+	self.graph[1].finalize(self.lastprice, "days")
+	self.graph[2].finalize(self.lastprice, "days")
+	self.graph[3].finalize(self.lastprice, "months")
 
 	self.gdr = self.graph[1]._xgdr[len(self.graph[1]._xgdr)-1]
 
