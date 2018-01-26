@@ -17,11 +17,10 @@ var (
 )
 
 const (
-	coldef         termbox.Attribute = termbox.ColorDefault
-	loadTick       time.Duration     = 300 * time.Millisecond
-	updateTick     time.Duration     = 5 * 60 * time.Second
-	optionsValue   float64           = 1775
-	optionsVesting float64           = 19.6
+	loadTick       time.Duration = 300 * time.Millisecond
+	updateTick     time.Duration = 5 * 60 * time.Second
+	optionsValue   float64       = 1775
+	optionsVesting float64       = 19.6
 )
 
 func loadSpinner(x, y int) *time.Ticker {
@@ -37,7 +36,7 @@ func loadSpinner(x, y int) *time.Ticker {
 		for _ = range ticker.C {
 			spin++
 
-			termbox.Clear(coldef, coldef)
+			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
 			fmt.Print("\x1b[2J\x1b[0;0H")
 			for _, e := range loadingBuffer {
