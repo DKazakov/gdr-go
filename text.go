@@ -18,7 +18,7 @@ func (self *Textinfo) Init(data *Data) *Textinfo {
 	self.lastprice = data.lastprice
 	self.lastclose = data.lastclose
 	self.dollar = data.dollar
-	self.up = data.lastprice > data.lastclose
+	self.up = data.lastprice >= data.lastclose
 
 	return self
 }
