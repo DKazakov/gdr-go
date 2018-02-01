@@ -197,7 +197,11 @@ func (self *Data) finalize() int {
 	)
 
 	self.lastclose = self.graph[1].x[len(self.graph[1].x)-1]
-	self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
+	if len(self.graph[0].x) > 0 {
+		self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
+	} else {
+		self.lastprice = self.lastclose
+	}
 
 	self.graph[0].finalize(self.lastclose, "hours")
 	self.graph[1].finalize(self.lastprice, "days")
