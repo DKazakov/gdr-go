@@ -54,12 +54,12 @@ func InitSource(options ...string) (self *Source) {
 }
 
 func (self *Source) load() (data []GraphData, err error) {
-	self.setStatus("load")
+	self.setStatus("load", 33)
 	data, err = self.get()
 	if err != nil {
-		self.setStatus("error")
+		self.setStatus("error", 31)
 	} else {
-		self.setStatus("done")
+		self.setStatus("done", 32)
 	}
 
 	return data, err
@@ -97,11 +97,18 @@ func (self *Source) get() (data []GraphData, err error) {
 
 	return
 }
-func (self *Source) setStatus(name string) {
+func (self *Source) setStatus(name string, color ...int) {
+	var statusColor int
 	if name == "error" {
 		self.status = fmt.Sprintf("\x1b[05;31m%s\x1b[0m", name)
 	} else {
-		self.status = fmt.Sprintf("\x1b[05;32m%s\x1b[0m", name)
+		if len(color) == 0 {
+			statusColor = 32
+		} else {
+			statusColor = color[0]
+		}
+
+		self.status = fmt.Sprintf("\x1b[05;%dm%s\x1b[0m", statusColor, name)
 	}
 	statusString := fmt.Sprintf("%s: %s", self.url, self.status)
 
