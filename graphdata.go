@@ -144,16 +144,19 @@ func hoursValueFormatter(v interface{}) string {
 }
 
 func minmax(array []float64) (min float64, max float64) {
-	min = array[0]
-	max = array[0]
-	for _, e := range array {
-		if max < e {
-			max = e
-		}
-		if min > e {
-			min = e
+	if len(array) > 0 {
+		min = array[0]
+		max = array[0]
+		for _, e := range array {
+			if max < e {
+				max = e
+			}
+			if min > e {
+				min = e
+			}
 		}
 	}
+
 	return
 }
 
