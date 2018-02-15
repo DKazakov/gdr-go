@@ -18,7 +18,7 @@ var (
 
 const (
 	loadTick       time.Duration = 300 * time.Millisecond
-	updateTick     time.Duration = 5 * 60 * time.Second
+	updateTick     time.Duration = 2 * 60 * time.Second
 	optionsValue   float64       = 1775
 	optionsVesting float64       = 19.6
 )

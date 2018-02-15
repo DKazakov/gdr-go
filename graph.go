@@ -93,6 +93,18 @@ func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 		XValues: source.y,
 		YValues: source.x,
 	})
+	if source.waterline > 0 {
+		series = append(series, chart.ContinuousSeries{
+			Name: source.labels.waterline,
+			Style: chart.Style{
+				Show:        true,
+				StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
+				StrokeWidth: 1.0,
+			},
+			XValues: []float64{source.y[0], source.y[len(source.y)-1]},
+			YValues: []float64{source.waterline, source.waterline},
+		})
+	}
 	if len(source.xv) > 0 {
 		series = append(series, chart.ContinuousSeries{
 			Name: source.labels.xv,
@@ -115,18 +127,6 @@ func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 			},
 			XValues: source.y,
 			YValues: source.xgdr,
-		})
-	}
-	if source.waterline > 0 {
-		series = append(series, chart.ContinuousSeries{
-			Name: source.labels.waterline,
-			Style: chart.Style{
-				Show:        true,
-				StrokeColor: drawing.Color{R: 0, G: 0, B: 255, A: 255},
-				StrokeWidth: 1.0,
-			},
-			XValues: []float64{source.y[0], source.y[len(source.y)-1]},
-			YValues: []float64{source.waterline, source.waterline},
 		})
 	}
 

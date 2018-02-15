@@ -96,7 +96,7 @@ func (self *GraphData) finalize(waterline float64, formatType string) {
 	self.setExtremum()
 	labels := new(GraphDataLabels)
 
-	labels.x = fmt.Sprintf("price, max: %.2f, min: %.2f", self.maximum.x, self.minimum.x)
+	labels.x = fmt.Sprintf("price, max: %.2f, min: %.2f, last: %.2f", self.maximum.x, self.minimum.x, self.x[len(self.x)-1])
 
 	if len(self._xv) > 0 {
 		C := (self.maximum.x - self.minimum.x) / (self.maximum.xv - self.minimum.xv)
