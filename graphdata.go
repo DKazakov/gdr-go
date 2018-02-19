@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	util "github.com/wcharczuk/go-chart/util"
-	"log"
 )
 
 type GraphDataLabels struct {
@@ -73,17 +72,15 @@ func (self GraphData) getGdr(next ...float64) (gdr float64) {
 		index = len(self._xv)
 		i     = index - 3
 	)
-	log.Println(index, i, len(next))
 	if i > 0 {
+		if len(next) > 0 {
+			count = count + next[0]*next[1]
+			summ = summ + next[1]
+			i = i + 1
+		}
 		for ; i < index; i++ {
 			count = count + self.x[i]*self._xv[i]
 			summ = summ + self._xv[i]
-		}
-		if len(next) > 0 {
-			log.Println(next[0], next[1], count, summ)
-			count = count + next[0]*next[1]
-			summ = summ + next[1]
-
 		}
 		gdr = optionsValue - (optionsValue * optionsVesting / (count / summ))
 	}
