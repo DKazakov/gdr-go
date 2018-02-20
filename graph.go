@@ -93,7 +93,7 @@ func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 		XValues: source.y,
 		YValues: source.x,
 	})
-	if source.waterline > 0 {
+	if source.waterline > 0 && len(source.y) > 0 {
 		series = append(series, chart.ContinuousSeries{
 			Name: source.labels.waterline,
 			Style: chart.Style{
@@ -105,7 +105,7 @@ func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 			YValues: []float64{source.waterline, source.waterline},
 		})
 	}
-	if len(source.xv) > 0 {
+	if len(source.xv) > 0 && len(source.y) > 0 {
 		series = append(series, chart.ContinuousSeries{
 			Name: source.labels.xv,
 			Style: chart.Style{
@@ -117,7 +117,7 @@ func (self Graph) render(imageWidth, imageHeight int) *bytes.Buffer {
 			YValues: source.xv,
 		})
 	}
-	if len(source.xgdr) > 0 {
+	if len(source.xgdr) > 0 && len(source.y) > 0 {
 		series = append(series, chart.ContinuousSeries{
 			Name: source.labels.xgdr,
 			Style: chart.Style{
