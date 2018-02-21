@@ -198,7 +198,11 @@ func (self *Data) finalize() int {
 		i   int
 	)
 
-	self.lastclose = self.graph[1].x[len(self.graph[1].x)-1]
+	if len(self.graph[1].x) > 0 {
+		self.lastclose = self.graph[1].x[len(self.graph[1].x)-1]
+	} else {
+		self.lastclose = 0
+	}
 	if len(self.graph[0].x) > 0 {
 		self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
 	} else {
