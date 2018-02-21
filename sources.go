@@ -27,27 +27,15 @@ type Source struct {
 }
 
 func InitSource(options ...string) (self *Source) {
-	const defaulturl = "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetDocsWithVolume"
 	self = new(Source)
-	optlen := len(options)
 
-	if optlen == 0 {
-		self.method = "POST"
-		self.url = defaulturl
-		self.postdata = `{"request":{"SampleTime":"1d","TimeFrame":"1y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`
-	} else if optlen == 1 {
-		self.method = "POST"
-		self.url = defaulturl
-		self.postdata = options[0]
+	if options[0] == "GET" {
+		self.method = options[0]
+		self.url = options[1]
 	} else {
-		if options[0] == "GET" {
-			self.method = options[0]
-			self.url = options[1]
-		} else {
-			self.method = "POST"
-			self.postdata = options[0]
-			self.url = options[1]
-		}
+		self.method = "POST"
+		self.postdata = options[0]
+		self.url = options[1]
 	}
 
 	return self
@@ -137,9 +125,9 @@ func daysCallback(jsonInterface *JsonStock) []GraphData {
 
 	for i, e := range jsonInterface.Data {
 		date := e[0] * 1000000
-		year.setValues(date, e[1], e[2])
+		year.setValues(date, e[1], e[6])
 		if i > lastMonth {
-			month.setValues(date, e[1], e[2])
+			month.setValues(date, e[1], e[6])
 			gdr := year.getGdr()
 			month.setGdr(gdr)
 		}
@@ -164,7 +152,7 @@ func hoursCallback(jsonInterface *JsonStock) []GraphData {
 	)
 
 	for _, e := range jsonInterface.Data {
-		today.setValues(e[0]*1000000, e[1])
+		today.setValues(e[0]*1000000, e[1], e[6])
 	}
 
 	return wrapper(*today)
@@ -177,17 +165,13 @@ func exchangeCallback(jsonInterface *JsonStock) []GraphData {
 }
 
 func getSources() map[string]*Source {
-	// daily	nil				- nil			post-default(postdata)-default(url)
-	// weekly	string(DATA)	- nil			post-postdata-default(url)
-	// hourly	string(DATA)	- string(URL)	post-postdata-url
-	// change	GET				- string(URL)	get-url
-	days := InitSource()
+	days := InitSource(makeStockData("1d", "1y"))
 	days.process = daysCallback
 
-	weeks := InitSource(`{"request":{"SampleTime":"1w","TimeFrame":"5y","RequestedDataSetType":"documental","ChartPriceType":"price","Key":"MAIL.LID","OffSet":0,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Docs":[""],"Language":"en"}}`)
+	weeks := InitSource(makeStockData("1d", "5y"))
 	weeks.process = weeksCallback
 
-	hours := InitSource(`{"request":{"SampleTime":"1mm","TimeFrame":"1d","RequestedDataSetType":"ohlc","ChartPriceType":"price","Key":"MAIL.LID","OffSet":-60,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Language":"en"}}`, "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetPrices")
+	hours := InitSource(makeStockData("1mm", "1d"))
 	hours.process = hoursCallback
 
 	exchange := InitSource("GET", "https://api.fixer.io/latest?base=USD&symbols=RUB")
@@ -201,4 +185,8 @@ func getSources() map[string]*Source {
 	}
 
 	return source
+}
+
+func makeStockData(st, tf string) (data, url string) {
+	return fmt.Sprintf(`{"request":{"SampleTime":"%s","TimeFrame":"%s","RequestedDataSetType":"ohlc","ChartPriceType":"price","Key":"MAIL.LID","OffSet":-60,"FromDate":null,"ToDate":null,"UseDelay":true,"KeyType":"Topic","KeyType2":"Topic","Language":"en"}}`, st, tf), "http://charts.londonstockexchange.com/WebCharts/services/ChartWService.asmx/GetPricesWithVolume"
 }

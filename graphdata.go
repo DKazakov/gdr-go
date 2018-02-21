@@ -102,7 +102,7 @@ func (self *GraphData) finalize(waterline float64, formatType string) {
 		for _, e := range self._xv {
 			self.xv = append(self.xv, self.minimum.x+((e-self.minimum.xv)*C))
 		}
-		labels.xv = fmt.Sprintf("scaled value, max: %.1fkk, min: %.1fkk", self.maximum.xv/1000000, self.minimum.xv/1000000)
+		labels.xv = fmt.Sprintf("scaled value, max: %.3fkk, min: %.3fkk", self.maximum.xv/1000000, self.minimum.xv/1000000)
 	}
 	if len(self._xgdr) > 0 {
 		C := (self.maximum.x - self.minimum.x) / (self.maximum.xgdr - self.minimum.xgdr)
