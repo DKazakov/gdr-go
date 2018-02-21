@@ -71,7 +71,7 @@ func get(name string, item *Source, data *Data) {
 
 	page, err := item.get()
 	if err != nil {
-		log.Println(name, "loading error", err)
+		log.Println(name, "reloading error", err)
 	} else {
 		data.set(name, page)
 	}
