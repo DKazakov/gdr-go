@@ -52,7 +52,8 @@ func (self *GraphData) setExtremum() {
 	if len(self._xgdr) > 0 {
 		min.xgdr, max.xgdr = minmax(self._xgdr)
 	}
-	min.chart, max.chart = minmax([]float64{max.x + 0.5, min.x - 0.5, self.waterline + 0.5, self.waterline - 0.5})
+	delta := (max.x - min.x) * 0.01
+	min.chart, max.chart = minmax([]float64{max.x + delta, min.x - delta, self.waterline + delta, self.waterline - delta})
 	self.maximum = max
 	self.minimum = min
 
