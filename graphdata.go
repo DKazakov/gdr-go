@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	util "github.com/wcharczuk/go-chart/util"
 	"time"
 )
 
@@ -130,17 +129,17 @@ func (self *GraphData) finalize(waterline float64, formatType string) {
 
 func monthsValueFormatter(v interface{}) string {
 	typed := v.(float64)
-	typedDate := util.Time.FromFloat64(typed)
+	typedDate := time.Unix(0, int64(typed))
 	return fmt.Sprintf("%.2d.%.2d", typedDate.Month(), typedDate.Year())
 }
 func daysValueFormatter(v interface{}) string {
 	typed := v.(float64)
-	typedDate := util.Time.FromFloat64(typed)
+	typedDate := time.Unix(0, int64(typed))
 	return fmt.Sprintf("%.2d.%.2d", typedDate.Day(), typedDate.Month())
 }
 func hoursValueFormatter(v interface{}) string {
 	typed := v.(float64)
-	typedDate := util.Time.FromFloat64(typed)
+	typedDate := time.Unix(0, int64(typed))
 	return fmt.Sprintf("%.2d:%.2d", typedDate.Hour(), typedDate.Minute())
 }
 
@@ -208,7 +207,7 @@ func (self *Data) finalize() int {
 	}
 	if len(self.graph[0].x) > 0 {
 		self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
-		self.lastupdate = util.Time.FromFloat64(self.graph[0].y[len(self.graph[0].y)-1])
+		self.lastupdate = time.Unix(0, int64(self.graph[0].y[len(self.graph[0].y)-1]))
 	} else {
 		self.lastprice = self.lastclose
 		self.lastupdate = time.Unix(0, 0)
@@ -221,10 +220,16 @@ func (self *Data) finalize() int {
 
 	self.gdr = self.graph[1]._xgdr[len(self.graph[1]._xgdr)-1]
 
-	for ; i < len(self.graph[1].xv); i++ {
-		avg = avg + self.graph[1]._xv[i]
+	if len(self.graph[0].x) > 0 && int(self.lastupdate.Hour()) > 15 {
+		for _, val := range self.graph[0]._xv {
+			avg = avg + val
+		}
+	} else {
+		for ; i < len(self.graph[1].xv); i++ {
+			avg = avg + self.graph[1]._xv[i]
+		}
+		avg = avg / float64(i)
 	}
-	avg = avg / float64(i)
 	self.gdrForecast = self.graph[1].getGdr(self.lastprice, avg)
 
 	return len(self.graph)
