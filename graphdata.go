@@ -203,14 +203,15 @@ func (self *Data) finalize() int {
 
 	if len(self.graph[1].x) > 0 {
 		self.lastclose = self.graph[1].x[len(self.graph[1].x)-1]
-		self.lastupdate = util.Time.FromFloat64(self.graph[0].y[len(self.graph[0].y)-1])
 	} else {
 		self.lastclose = 0
 	}
 	if len(self.graph[0].x) > 0 {
 		self.lastprice = self.graph[0].x[len(self.graph[0].x)-1]
+		self.lastupdate = util.Time.FromFloat64(self.graph[0].y[len(self.graph[0].y)-1])
 	} else {
 		self.lastprice = self.lastclose
+		self.lastupdate = time.Unix(0, 0)
 	}
 
 	self.graph[0].finalize(self.lastclose, "hours")

@@ -19,7 +19,11 @@ func (self *Textinfo) Init(data *Data) *Textinfo {
 	self.lastprice = data.lastprice
 	self.lastclose = data.lastclose
 	self.dollar = data.dollar
-	self.lastupdate = fmt.Sprintf("%.2d:%.2d:%.2d", data.lastupdate.Hour(), data.lastupdate.Minute(), data.lastupdate.Second())
+	if data.lastupdate != time.Unix(0, 0) {
+		self.lastupdate = fmt.Sprintf("%.2d:%.2d:%.2d", data.lastupdate.Hour(), data.lastupdate.Minute(), data.lastupdate.Second())
+	} else {
+		self.lastupdate = "--:--:--"
+	}
 	self.up = data.lastprice >= data.lastclose
 
 	return self
