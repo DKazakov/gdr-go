@@ -35,7 +35,6 @@ func (self Textinfo) forecast(height int) (padding int) {
 		mul        = 0.993
 	)
 	var (
-		start     = float64(int(self.lastprice - 3))
 		color     string
 		even      = true
 		value     float64
@@ -43,6 +42,7 @@ func (self Textinfo) forecast(height int) (padding int) {
 		col       string
 		collength int
 		goodprice = (1.65*1000000)/(self.dollar*1775) + optionsVesting
+		start, _  = minmax([]float64{float64(int(self.lastprice - 3)), float64(int(goodprice - 3))})
 	)
 	for price := start; price < start+float64(height-4)/2; price = price + step {
 		value = optionsValue * (price - optionsVesting)
