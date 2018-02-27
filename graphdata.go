@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	util "github.com/wcharczuk/go-chart/util"
+	"time"
 )
 
 type GraphDataLabels struct {
@@ -164,6 +165,7 @@ type Data struct {
 	graph                [4]GraphData
 	gdr, gdrForecast     float64
 	lastprice, lastclose float64
+	lastupdate           time.Time
 	dollar               float64
 }
 
@@ -201,6 +203,7 @@ func (self *Data) finalize() int {
 
 	if len(self.graph[1].x) > 0 {
 		self.lastclose = self.graph[1].x[len(self.graph[1].x)-1]
+		self.lastupdate = util.Time.FromFloat64(self.graph[0].y[len(self.graph[0].y)-1])
 	} else {
 		self.lastclose = 0
 	}

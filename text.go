@@ -8,6 +8,7 @@ import (
 type Textinfo struct {
 	gdr, gdrForecast     float64
 	lastprice, lastclose float64
+	lastupdate           string
 	dollar               float64
 	up                   bool
 }
@@ -18,6 +19,7 @@ func (self *Textinfo) Init(data *Data) *Textinfo {
 	self.lastprice = data.lastprice
 	self.lastclose = data.lastclose
 	self.dollar = data.dollar
+	self.lastupdate = fmt.Sprintf("%.2d:%.2d:%.2d", data.lastupdate.Hour(), data.lastupdate.Minute(), data.lastupdate.Second())
 	self.up = data.lastprice >= data.lastclose
 
 	return self
@@ -85,10 +87,11 @@ func (self Textinfo) info(height int) int {
 	}
 
 	fmt.Printf(
-		"\x1b[%d;0H\nСтоимость сейчас: %.2f %s Последнее обновление %s\nGDR: %.2f (прогноз: %.2f => %s рублей)\nОбщая стоимость: %s доллара (%s рублей при курсе %.2f)",
+		"\x1b[%d;0H\nСтоимость сейчас: %.2f %s Последнее обновление %s, последняя попытка %s\nGDR: %.2f (прогноз: %.2f => %s рублей)\nОбщая стоимость: %s доллара (%s рублей при курсе %.2f)",
 		height-infoHeight,
 		self.lastprice,
 		smile,
+		self.lastupdate,
 		time.Now().Format("15:04:05"),
 		self.gdr,
 		self.gdrForecast,
