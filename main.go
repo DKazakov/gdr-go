@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -86,6 +87,7 @@ func main() {
 	f, _ := os.OpenFile("/var/log/self/gdr.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	defer f.Close()
 	log.SetOutput(f)
+	syscall.Dup2(int(f.Fd()), 2)
 
 	termbox.Init()
 	termbox.SetOutputMode(termbox.OutputMode(termbox.OutputNormal))
