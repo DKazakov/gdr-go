@@ -22,7 +22,7 @@ for i in $#
 do
     if [[ "$i" == "1" && "${!i}" == "ok" ]]
     then
-        go build -o gdr main.go sources.go graph.go graphdata.go text.go
+        go build -o gdr main.go sources.go graph.go data.go text.go
         if [ $? == 0 ]
         then
             mv gdr ~/bin/gdr
@@ -30,6 +30,6 @@ do
             echo "build error!"
         fi
     else
-        go run main.go sources.go graph.go graphdata.go text.go
+        go run main.go sources.go graph.go data.go text.go
     fi
 done
