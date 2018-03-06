@@ -218,7 +218,9 @@ func (self *Data) finalize() int {
 	self.graph[2].finalize(self.lastprice, "days")
 	self.graph[3].finalize(self.lastprice, "months")
 
-	self.gdr = self.graph[1]._xgdr[len(self.graph[1]._xgdr)-1]
+	if len(self.graph[1]._xgdr) > 0 {
+		self.gdr = self.graph[1]._xgdr[len(self.graph[1]._xgdr)-1]
+	}
 
 	if len(self.graph[0].x) > 0 && int(self.lastupdate.Hour()) > 15 {
 		for _, val := range self.graph[0]._xv {
