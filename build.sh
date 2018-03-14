@@ -25,7 +25,8 @@ do
         go build -o gdr main.go sources.go graph.go data.go text.go
         if [ $? == 0 ]
         then
-            mv gdr ~/bin/gdr
+            #mv gdr ~/bin/gdr
+            echo "build ok!"
         else
             echo "build error!"
         fi
