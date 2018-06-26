@@ -57,7 +57,7 @@ func (self Graph) print(width, height, left, bottom int) {
 	imageWidth := (width - left) * 7
 	imageHeight := (height - bottom) * 15
 
-	image := self.render(imageWidth, imageHeight)
+	image := self.render(imageWidth*2, imageHeight*2)
 	str := base64.StdEncoding.EncodeToString(image.Bytes())
 	paginate := self.paginate()
 

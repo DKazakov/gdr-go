@@ -159,7 +159,7 @@ func hoursCallback(jsonInterface *JsonStock) []GraphData {
 }
 func exchangeCallback(jsonInterface *JsonStock) []GraphData {
 	dollar := new(GraphData)
-	dollar.setValues(0, jsonInterface.Rates["RUB"])
+	dollar.setValues(0, float64(jsonInterface.Rates["RUB"])/float64(jsonInterface.Rates["USD"]))
 
 	return wrapper(*dollar)
 }
@@ -174,7 +174,7 @@ func getSources() map[string]*Source {
 	hours := InitSource(makeStockData("1mm", "1d"))
 	hours.process = hoursCallback
 
-	exchange := InitSource("GET", "https://api.fixer.io/latest?base=USD&symbols=RUB")
+	exchange := InitSource("GET", "http://data.fixer.io/latest?symbols=RUB,USD&access_key=2c9d0b143d653c87830759e564b07708")
 	exchange.process = exchangeCallback
 
 	source := map[string]*Source{
